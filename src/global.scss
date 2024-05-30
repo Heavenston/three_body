@@ -1,0 +1,40 @@
+:root {
+  --cool-blue: rgb(100, 136, 234);
+}
+
+body, html {
+  padding: 0;
+  margin: 0;
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  overflow: hidden;
+
+  color: white;
+  font-family: sans-serif;
+}
+
+/* <CSS RESET> */
+button, input {
+  border: none;
+  font-family: inherit;
+  color: inherit;
+}
+button {
+  cursor: pointer;
+}
+/* </CSS RESET> */
+
+#canvas {
+  position: absolute;
+  z-index: 0;
+}
+
+.hud {
+  position: absolute;
+  z-index: 1;
+
+  margin: 0.5rem;
+}
