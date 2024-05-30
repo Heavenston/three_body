@@ -3,30 +3,28 @@ import fragmentShaderSrc from "./shaders/fragment.glsl"
 import { UserError } from "./usererror";
 import { Color } from "./math";
 import { WebGLError, createProgram, createShader } from "./webgl_utils";
+import { Application } from "./application";
 
 export class Renderer {
   public canvas: HTMLCanvasElement;
   public ctx: WebGL2RenderingContext;
 
-  public totalTime: number = 0;
-  public dt: number = 0;
-
-  public statusBar: HTMLDivElement;
+  public application: Application;
 
   public program: WebGLProgram | null = null;
   public vao: WebGLVertexArrayObject | null = null;
 
-  public constructor(canvas: HTMLCanvasElement) {
+  constructor(
+    application: Application,
+    canvas: HTMLCanvasElement,
+  ) {
+    this.application = application;
     this.canvas = canvas;
+
     const ctx = canvas.getContext("webgl2");
     if (!ctx)
       throw new UserError("No context?");
     this.ctx = ctx;
-
-    const statusBar = document.getElementById("statusBar");
-    if (statusBar === null || !(statusBar instanceof HTMLDivElement))
-      throw new UserError("Missing status bar element");
-    this.statusBar = statusBar;
 
     this.init();
   }
@@ -64,7 +62,7 @@ export class Renderer {
     );
   }
 
-  private render() {
+  public render() {
     const ctx = this.ctx;
     ctx.viewport(0, 0, this.canvas.width, this.canvas.height);
 
@@ -78,19 +76,5 @@ export class Renderer {
     ctx.bindVertexArray(this.vao);
 
     ctx.drawArrays(ctx.TRIANGLES, 0, 3);
-  }
-
-  private updateStatusBar() {
-    const text = `FPS: ${Math.round((1 / this.dt) * 10) / 10}`;
-    if (this.statusBar.innerText !== text)
-      this.statusBar.innerText = text;
-  }
-
-  public update(dt: number) {
-    this.totalTime += dt;
-    this.dt = dt;
-
-    this.updateStatusBar();
-    this.render();
   }
 }

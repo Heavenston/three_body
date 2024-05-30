@@ -1,5 +1,5 @@
 import { clamp } from "./math";
-import { Renderer } from "./renderer";
+import { Application } from "./application";
 import { UserError } from "./usererror";
 
 function init() {
@@ -10,7 +10,7 @@ function init() {
   let onError: ((e: unknown) => void) | null = null;
   const promise = new Promise((_res, rej) => {onError = rej;});
 
-  const renderer = new Renderer(canvas);
+  const renderer = new Application(canvas);
 
   let lastT = 0;
   let animationFrame: number | null = null;
