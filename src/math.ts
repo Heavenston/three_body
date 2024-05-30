@@ -43,3 +43,7 @@ export function gaussianRandom(mean=0, stdev=1): number {
     // Transform to the desired mean and standard deviation:
     return z * stdev + mean;
 }
+
+export function isZeroApprox(n: number): boolean {
+  return Math.abs(n) <= 1e-10;
+}

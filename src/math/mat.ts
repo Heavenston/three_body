@@ -1,3 +1,4 @@
+import { isZeroApprox } from "../math";
 import { Vec3, Vec4 } from "./vec";
 
 export class Mat3 {
@@ -115,6 +116,15 @@ export class Mat4 {
     0, 0, 0, 1,
   );
 
+  public static fromTranslation(trans: Vec3): Mat4 {
+    return new Mat4(
+      1, 0, 0, trans.x,
+      0, 1, 0, trans.y,
+      0, 0, 1, trans.z,
+      0, 0, 0, 1,
+    );
+  }
+
   public get(row: number, col: number): number {
     if (row >= 4 || col >= 4 || row < 0 || col < 0)
       throw new RangeError("out of bound get");
@@ -150,7 +160,12 @@ export class Mat4 {
     return new Mat4(...this.vals.map((v, i) => v - other.vals[i]));
   }
 
-  public mul(other: Mat4): Mat4 {
+  public mul(other: Mat4): Mat4;
+  public mul(other: number): Mat4;
+  public mul(other: Mat4 | number): Mat4 {
+    if (typeof other === "number") {
+      return new Mat4(...this.vals.map(val => val * other));
+    }
     // yes this is very slow
     // what you gonna do about it ?
     return new Mat4(
@@ -160,4 +175,50 @@ export class Mat4 {
       this.row(3).dot(other.column(0)), this.row(3).dot(other.column(1)), this.row(3).dot(other.column(2)), this.row(3).dot(other.column(3)),
     );
   }
-}
+
+  public div(other: number): Mat4 {
+    return new Mat4(...this.vals.map(val => val / other));
+  }
+
+  public det(): number {
+    const m = this.vals;
+    return (
+      m[3] * m[6] * m[9] * m[12] - m[2] * m[7] * m[9] * m[12] - m[3] * m[5] * m[10] * m[12] + m[1] * m[7] * m[10] * m[12] +
+      m[2] * m[5] * m[11] * m[12] - m[1] * m[6] * m[11] * m[12] - m[3] * m[6] * m[8] * m[13] + m[2] * m[7] * m[8] * m[13] +
+      m[3] * m[4] * m[10] * m[13] - m[0] * m[7] * m[10] * m[13] - m[2] * m[4] * m[11] * m[13] + m[0] * m[6] * m[11] * m[13] +
+      m[3] * m[5] * m[8] * m[14] - m[1] * m[7] * m[8] * m[14] - m[3] * m[4] * m[9] * m[14] + m[0] * m[7] * m[9] * m[14] +
+      m[1] * m[4] * m[11] * m[14] - m[0] * m[5] * m[11] * m[14] - m[2] * m[5] * m[8] * m[15] + m[1] * m[6] * m[8] * m[15] +
+      m[2] * m[4] * m[9] * m[15] - m[0] * m[6] * m[9] * m[15] - m[1] * m[4] * m[10] * m[15] + m[0] * m[5] * m[10] * m[15]
+    );
+  }
+
+  public comatrix(): Mat4 {
+    const m = this.vals;
+    const cofactor = (r: number, c: number): number => {
+      const submat = [];
+      for (let i = 0; i < 4; i++) {
+        for (let j = 0; j < 4; j++) {
+          if (i !== r && j !== c) {
+            submat.push(m[i * 4 + j]);
+          }
+        }
+      }
+      return ((r + c) % 2 === 0 ? 1 : -1) * (submat[0] * submat[3] - submat[1] * submat[2]);
+    };
+
+    return new Mat4(
+      cofactor(0, 0), cofactor(1, 0), cofactor(2, 0), cofactor(3, 0),
+      cofactor(0, 1), cofactor(1, 1), cofactor(2, 1), cofactor(3, 1),
+      cofactor(0, 2), cofactor(1, 2), cofactor(2, 2), cofactor(3, 2),
+      cofactor(0, 3), cofactor(1, 3), cofactor(2, 3), cofactor(3, 3),
+    );
+  }
+
+  public inverse(): Mat4 | null {
+    const det = this.det();
+    if (isZeroApprox(det)) return null;
+
+    const cofactorMatrix = this.comatrix();
+    const adjugate = cofactorMatrix.transpose();
+    return adjugate.div(det);
+  }}

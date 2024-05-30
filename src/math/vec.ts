@@ -219,13 +219,15 @@ export class Vec3 extends VecN {
     super(x, y, z);
   }
 
-  public static override splat(val: number): VecN {
+  public static override splat(val: number): Vec3 {
     return new Vec3(val, val, val);
   }
 
-  public static override random(): VecN {
+  public static override random(): Vec3 {
     return new Vec3(Math.random(), Math.random(), Math.random());
   }
+
+  public static ZERO = Vec3.splat(0);
 
   public get x(): number {
     return this.vals[0];
