@@ -173,6 +173,14 @@ export class Vec2 extends VecN {
     super(x, y);
   }
 
+  public static override splat(val: number): VecN {
+    return new Vec2(val, val);
+  }
+
+  public static override random(): VecN {
+    return new Vec2(Math.random(), Math.random());
+  }
+
   public get x(): number {
     return this.vals[0];
   }
@@ -190,7 +198,7 @@ export class Vec2 extends VecN {
   }
 
   public get y(): number {
-    return this.vals[0];
+    return this.vals[1];
   }
 
   public with_y(val: number): Vec2 {
@@ -198,7 +206,7 @@ export class Vec2 extends VecN {
   }
 
   public get v(): number {
-    return this.vals[0];
+    return this.vals[1];
   }
 
   public with_v(val: number): Vec2 {
@@ -211,27 +219,53 @@ export class Vec3 extends VecN {
     super(x, y, z);
   }
 
+  public static override splat(val: number): VecN {
+    return new Vec3(val, val, val);
+  }
+
+  public static override random(): VecN {
+    return new Vec3(Math.random(), Math.random(), Math.random());
+  }
+
   public get x(): number {
     return this.vals[0];
   }
 
-  public with_x(val: number): Vec2 {
-    return new Vec2(val, this.y);
-  }
-
   public get y(): number {
-    return this.vals[0];
-  }
-
-  public with_y(val: number): Vec2 {
-    return new Vec2(this.x, val);
+    return this.vals[1];
   }
 
   public get z(): number {
+    return this.vals[2];
+  }
+}
+
+export class Vec4 extends VecN {
+  public constructor(x: number, y: number, z: number, w: number) {
+    super(x, y, z, w);
+  }
+
+  public static override splat(val: number): VecN {
+    return new Vec4(val, val, val, val);
+  }
+
+  public static override random(): VecN {
+    return new Vec4(Math.random(), Math.random(), Math.random(), Math.random());
+  }
+
+  public get x(): number {
     return this.vals[0];
   }
 
-  public with_z(val: number): Vec2 {
-    return new Vec2(this.x, val);
+  public get y(): number {
+    return this.vals[1];
+  }
+
+  public get z(): number {
+    return this.vals[2];
+  }
+
+  public get w(): number {
+    return this.vals[3];
   }
 }
