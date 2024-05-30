@@ -5,7 +5,8 @@
     "target": "esnext",
     "strict": true,
     "noEmit": true,
-    "noImplicitOverride": true
+    "noImplicitOverride": true,
+    "types": ["@webgpu/types"]
   },
   "include": ["src/**/*"]
 }
