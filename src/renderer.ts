@@ -1,21 +1,20 @@
 import vertexShaderSrc from "./shaders/vertex.glsl"
 import fragmentShaderSrc from "./shaders/fragment.glsl"
 import { UserError } from "./usererror";
-import { GLAbstraction, GLProgram, GLVertexArrayObject } from "./webglAbstraction";
 import { Color } from "./math";
+import { WebGLError, createProgram, createShader } from "./webgl_utils";
 
 export class Renderer {
   public canvas: HTMLCanvasElement;
   public ctx: WebGL2RenderingContext;
-  public gl: GLAbstraction;
 
   public totalTime: number = 0;
   public dt: number = 0;
 
   public statusBar: HTMLDivElement;
 
-  public program: GLProgram | null = null;
-  public vao: GLVertexArrayObject | null = null;
+  public program: WebGLProgram | null = null;
+  public vao: WebGLVertexArrayObject | null = null;
 
   public constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -23,7 +22,6 @@ export class Renderer {
     if (!ctx)
       throw new UserError("No context?");
     this.ctx = ctx;
-    this.gl = new GLAbstraction(ctx);
 
     const statusBar = document.getElementById("statusBar");
     if (statusBar === null || !(statusBar instanceof HTMLDivElement))
@@ -34,45 +32,52 @@ export class Renderer {
   }
 
   private init() {
-    const gl = this.gl;
+    const ctx = this.ctx;
 
-    const vertexShader = gl.createShader("vertex", vertexShaderSrc);
-    const fragmentShader = gl.createShader("fragment", fragmentShaderSrc);
-    const program = gl.createProgram(vertexShader, fragmentShader);
+    const vertexShader = createShader(ctx, ctx.VERTEX_SHADER, vertexShaderSrc);
+    const fragmentShader = createShader(ctx, ctx.FRAGMENT_SHADER, fragmentShaderSrc);
+    const program = createProgram(ctx, vertexShader, fragmentShader);
+    ctx.useProgram(program);
     this.program = program;
 
-    const posAttrib = program.getAttrib("a_position");
+    const posAttrib = ctx.getAttribLocation(program, "a_position");
 
-    const posBuffer = gl.createBuffer();
-    posBuffer.bind("array");
-    posBuffer.data(new Float32Array([
-      0.0, 0.0, 0, 0.5, 0.7, 0,
-    ]), "static_draw");
+    const posBuffer = ctx.createBuffer();
+    if (!posBuffer)
+      throw new WebGLError("no pos buffer");
+    ctx.bindBuffer(ctx.ARRAY_BUFFER, posBuffer);
+    ctx.bufferData(
+      ctx.ARRAY_BUFFER, new Float32Array([
+        0.0, 0.0, 0, 0.5, 0.7, 0,
+      ]), ctx.STATIC_DRAW,
+    );
 
-    const vao = gl.createVertexArrayObject();
+    const vao = ctx.createVertexArray();
+    if (!vao)
+      throw new WebGLError("no pos buffer");
     this.vao = vao;
-    vao.bind();
+    ctx.bindVertexArray(vao);
 
-    posAttrib.enableVertexAttribArray();
-    posAttrib.vertexAttribPointer(
-      2, "float", false, 0, 0
+    ctx.enableVertexAttribArray(posAttrib);
+    ctx.vertexAttribPointer(
+      posAttrib, 2, ctx.FLOAT, false, 0, 0
     );
   }
 
   private render() {
-    const gl = this.gl;
-    gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+    const ctx = this.ctx;
+    ctx.viewport(0, 0, this.canvas.width, this.canvas.height);
 
-    gl.clearColor(Color.BLACK);
-    gl.clear();
+    ctx.clearColor(0,0,0,1);
+    ctx.clear(ctx.COLOR_BUFFER_BIT);
 
     if (!this.program || !this.vao)
       return;
 
-    this.program.use();
-    this.vao.bind();
+    ctx.useProgram(this.program);
+    ctx.bindVertexArray(this.vao);
 
-    this.gl.drawArrays("triangles", 0, 3);
+    ctx.drawArrays(ctx.TRIANGLES, 0, 3);
   }
 
   private updateStatusBar() {
