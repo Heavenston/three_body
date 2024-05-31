@@ -125,6 +125,23 @@ export class Mat4 {
     );
   }
 
+  public static newPerspective(
+    fov: number,
+    aspect: number,
+    near: number,
+    far: number,
+  ): Mat4 {
+    const f = Math.tan(Math.PI * 0.5 - 0.5 * fov);
+    const rangeInv = 1 / (near - far);
+
+    return new Mat4(
+      f / aspect, 0, 0,                          0,
+      0,          f, 0,                          0,
+      0,          0, (near + far) * rangeInv,   -1,
+      0,          0, near * far * rangeInv * 2,  0
+    );
+  }
+
   public get(row: number, col: number): number {
     if (row >= 4 || col >= 4 || row < 0 || col < 0)
       throw new RangeError("out of bound get");
@@ -146,8 +163,8 @@ export class Mat4 {
     return new Vec4(this.vals[col], this.vals[col + 4], this.vals[col + 8], this.vals[col + 12]);
   }
 
-  public row(row: number): Vec3 {
-    if (row >= 3 || row < 0)
+  public row(row: number): Vec4 {
+    if (row >= 4 || row < 0)
       throw new RangeError("out of bound get");
     return new Vec4(this.vals[row * 4], this.vals[row * 4 + 1], this.vals[row * 4 + 2], this.vals[row * 4 + 3]);
   }

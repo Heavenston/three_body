@@ -1,7 +1,29 @@
 import { UserError } from "./usererror";
-import { Renderer } from "./renderer";
+import { CameraComponent, Renderer } from "./renderer";
+import { Component, Entity } from "./entity";
+import { Vec3 } from "./math/vec";
+import { Mat3, Mat4 } from "./math/mat";
+import { Color } from "./math/color";
+
+export class TransformComponent extends Component {
+  public translation: Vec3 = Vec3.ZERO;
+  public affine: Mat3 = Mat3.IDENT;
+
+  public modelToWorld(): Mat4 {
+    return this.affine.expand()
+      .mul(Mat4.fromTranslation(this.translation));
+  }
+
+  public withTranslation(trans: Vec3): this {
+    this.translation = trans;
+    return this;
+  }
+}
 
 export class Application {
+  #defered: (() => void)[] = [];
+  #entities: Set<Entity> = new Set();
+
   public canvas: HTMLCanvasElement;
   public renderer: Renderer;
 
@@ -9,6 +31,10 @@ export class Application {
   public dt: number = 0;
 
   public statusBar: HTMLDivElement;
+
+  public get entities(): Readonly<Set<Entity>> {
+    return this.#entities;
+  }
 
   public constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -19,6 +45,35 @@ export class Application {
     this.statusBar = statusBar;
 
     this.renderer = new Renderer(this, this.canvas);
+
+    this.init();
+  }
+
+  private init() {
+    const camera = new Entity(this);
+    camera.addComponent(new TransformComponent(camera)
+      .withTranslation(new Vec3(0, 0, 10)));
+    camera.addComponent(new CameraComponent(camera)
+      .withClearColor(new Color(0.05, 0.05, 0.05, 1)));
+    this.spawn(camera);
+    this.renderer.mainCamera = camera;
+  }
+
+  public defer(cb: () => void) {
+    this.#defered.push(cb);
+  }
+
+  public spawn(entity: Entity) {
+    if (this.#entities.has(entity))
+      throw new Error("entity already spawned");
+
+    this.#entities.add(entity);
+    entity.spawned();
+  }
+
+  public despawn(entity: Entity) {
+    if (this.#entities.delete(entity))
+      entity.despawned();
   }
 
   private updateStatusBar() {
@@ -30,6 +85,9 @@ export class Application {
   public update(dt: number) {
     this.totalTime += dt;
     this.dt = dt;
+
+    this.#defered.forEach(cb => cb());
+    this.#defered = [];
 
     this.updateStatusBar();
 
