@@ -150,10 +150,10 @@ export class Mat4 {
 
   public transpose(): Mat4 {
     return new Mat4(
-      this.vals[0], this.vals[4], this.vals[7],  this.vals[11],
-      this.vals[1], this.vals[5], this.vals[8],  this.vals[12],
-      this.vals[2], this.vals[6], this.vals[9],  this.vals[13],
-      this.vals[3], this.vals[7], this.vals[10], this.vals[14],
+      this.vals[0], this.vals[4], this.vals[8],  this.vals[12],
+      this.vals[1], this.vals[5], this.vals[9],  this.vals[13],
+      this.vals[2], this.vals[6], this.vals[10], this.vals[14],
+      this.vals[3], this.vals[7], this.vals[11], this.vals[15],
     );
   }
 
@@ -220,7 +220,10 @@ export class Mat4 {
           }
         }
       }
-      return ((r + c) % 2 === 0 ? 1 : -1) * (submat[0] * submat[3] - submat[1] * submat[2]);
+      const determinant3x3 = (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number): number => {
+        return a * (e * i - f * h) - b * (d * i - f * g) + c * (d * h - e * g);
+      };
+      return ((r + c) % 2 === 0 ? 1 : -1) * (determinant3x3 as any)(...submat);
     };
 
     return new Mat4(
@@ -238,4 +241,5 @@ export class Mat4 {
     const cofactorMatrix = this.comatrix();
     const adjugate = cofactorMatrix.transpose();
     return adjugate.div(det);
-  }}
+  }
+}

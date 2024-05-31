@@ -86,7 +86,7 @@ export function applyUniform(
 ): void {
   const location = ctx.getUniformLocation(program, uniform.target);
   if (location === null) {
-    console.warn(`Uknown uniform ${uniform.target}`);
+    // console.warn(`Uknown uniform ${uniform.target}`);
     return;
   }
 

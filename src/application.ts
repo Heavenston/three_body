@@ -1,9 +1,12 @@
 import { UserError } from "./usererror";
-import { CameraComponent, Renderer } from "./renderer";
+import { CameraComponent, Material, Mesh, MeshComponent, Renderer } from "./renderer";
 import { Component, Entity } from "./entity";
 import { Vec3 } from "./math/vec";
 import { Mat3, Mat4 } from "./math/mat";
 import { Color } from "./math/color";
+
+import vertexSource from "./shaders/vertex.glsl";
+import fragmentSource from "./shaders/fragment.glsl";
 
 export class TransformComponent extends Component {
   public translation: Vec3 = Vec3.ZERO;
@@ -52,11 +55,27 @@ export class Application {
   private init() {
     const camera = new Entity(this);
     camera.addComponent(new TransformComponent(camera)
-      .withTranslation(new Vec3(0, 0, 10)));
+      .withTranslation(new Vec3(0, 0, 1)));
     camera.addComponent(new CameraComponent(camera)
       .withClearColor(new Color(0.05, 0.05, 0.05, 1)));
     this.spawn(camera);
     this.renderer.mainCamera = camera;
+
+    const material = Material.fromSources(this.renderer, vertexSource, fragmentSource);
+    const mesh = Mesh.fromVertices(
+      this.renderer,
+      material,
+      new Float32Array([
+        0.0, 0.0, 0.0,  0, 0,
+        0.0, 1.0, 0.0,  0, 1,
+        1.0, 0.0, 0.0,  1, 0,
+      ]),
+    );
+
+    const on = new Entity(this);
+    on.addComponent(new TransformComponent(on));
+    on.addComponent(new MeshComponent(on, mesh));
+    this.spawn(on);
   }
 
   public defer(cb: () => void) {
