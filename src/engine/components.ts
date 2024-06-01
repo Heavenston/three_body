@@ -2,7 +2,7 @@ import { Component, Entity } from "./entity";
 import { Color } from "~/src/math/color";
 import { Mat3, Mat4 } from "~/src/math/mat";
 import { Vec3 } from "~/src/math/vec";
-import { Mesh } from "./renderer";
+import { Mesh } from "./mesh";
 
 export class TransformComponent extends Component {
   public translation: Vec3 = Vec3.ZERO;

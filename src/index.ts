@@ -4,12 +4,13 @@ import { Component, Entity } from "./engine/entity";
 import { CameraComponent, MeshComponent, TransformComponent } from "./engine/components";
 import { Vec3 } from "./math/vec";
 import { Color } from "./math/color";
-import { Material, Mesh } from "./engine/renderer";
 
 import vertexSource from "./shaders/vertex.glsl";
 import fragmentSource from "./shaders/fragment.glsl";
 import { Mat3 } from "./math/mat";
 import { G, clamp } from "./math";
+import { Material } from "./material";
+import { Mesh } from "./engine/mesh";
 
 export class MassiveComponent extends Component {
   public mass: number = 1;
