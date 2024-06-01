@@ -3,7 +3,7 @@ import { WebGLError, applyUniform, createProgram, createShader } from "./webgl_u
 import { Application } from "./application";
 import { Entity } from "./entity";
 import { CameraComponent, MeshComponent, TransformComponent } from "./components";
-import { Vec2, Vec3 } from "./math/vec";
+import { Vec2, Vec3 } from "~/src/math/vec";
 
 export class Material {
   constructor(

@@ -6,7 +6,11 @@
     "strict": true,
     "noEmit": true,
     "noImplicitOverride": true,
-    "types": ["@webgpu/types"]
+    "types": ["@webgpu/types"],
+    "baseUrl": "./",
+    "paths": {
+      "~/*": ["./*"]
+    }
   },
   "include": ["src/**/*"]
 }

@@ -1,5 +1,5 @@
-import { Mat3, Mat4 } from "./math/mat";
-import { Vec2, Vec3, Vec4 } from "./math/vec";
+import { Mat3, Mat4 } from "~/src/math/mat";
+import { Vec2, Vec3, Vec4 } from "~/src/math/vec";
 
 export type UniformScalarType = "f" | "i" | "ui";
 

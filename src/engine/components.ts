@@ -1,8 +1,7 @@
 import { Component, Entity } from "./entity";
-import { G, clamp } from "./math";
-import { Color } from "./math/color";
-import { Mat3, Mat4 } from "./math/mat";
-import { Vec2, Vec3 } from "./math/vec";
+import { Color } from "~/src/math/color";
+import { Mat3, Mat4 } from "~/src/math/mat";
+import { Vec3 } from "~/src/math/vec";
 import { Mesh } from "./renderer";
 
 export class TransformComponent extends Component {
@@ -95,73 +94,5 @@ export class MeshComponent extends Component {
     public mesh: Mesh,
   ) {
     super(entity);
-  }
-}
-
-export class MassiveComponent extends Component {
-  public mass: number = 1;
-
-  public withMass(mass: number): this {
-    this.mass = mass;
-    return this;
-  }
-}
-
-export class ParticleComponent extends Component {
-  public velocity: Vec3 = Vec3.ZERO;
-  public radius: number = 0.5;
-
-  public withVelocity(vel: Vec3): this {
-    this.velocity = vel;
-    return this;
-  }
-
-  public override update() {
-    super.update();
-    const dt = this.application.dt;
-
-    const transform = this.entity.components.unwrap_get(TransformComponent);
-
-    let force = Vec3.ZERO;
-
-    for (const entity of this.application.entities) {
-      if (entity === this.entity)
-        continue;
-      const other_transform = entity.components.get(TransformComponent);
-      if (!other_transform)
-        continue;
-      const other_mass = entity.components.get(MassiveComponent);
-      if (!other_mass)
-        continue;
-      const diff = other_transform.translation
-        .sub(transform.translation);
-      const dist = diff.norm();
-      const dir = diff.div(dist);
-
-      let actualDist = clamp(dist, this.radius, null);
-
-      force = force.add(dir.mul((G * other_mass.mass) / (actualDist ** 2)))
-        .as_vec3();
-    }
-
-    this.velocity = this.velocity.add(force.mul(dt))
-      .as_vec3();
-
-    transform.globalRotateZ(-(this.velocity.x / this.radius) * dt);
-    transform.globalRotateX((this.velocity.z / this.radius) * dt);
-
-    transform.translate(this.velocity.mul(dt).as_vec3());
-  }
-}
-
-export class LookAroundComponent extends Component {
-  public override update() {
-    super.update();
-    const dt = this.application.dt;
-
-    const transform = this.entity.components.unwrap_get(TransformComponent);
-    
-    transform.translation = Mat3.rotateY(dt).mul(transform.translation);
-    transform.affine = Mat3.looking_at(transform.translation, Vec3.ZERO, Vec3.UP);
   }
 }
