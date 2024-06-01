@@ -12,7 +12,7 @@ export class Renderer {
   public adapter: GPUAdapter;
   public device: GPUDevice;
 
-  public sampleCount: number = 1;
+  public sampleCount: number = 4;
   public renderTarget: GPUTexture | null = null;
   public renderTargetView: GPUTextureView | null = null;
   public depthTexture: GPUTexture | null = null;
@@ -78,6 +78,7 @@ export class Renderer {
       this.renderTarget = device.createTexture({
         size: [width, height],
         format: this.presentationFormat,
+        sampleCount: this.sampleCount,
         usage: GPUTextureUsage.RENDER_ATTACHMENT,
       });
       this.renderTargetView = this.renderTarget.createView();
@@ -90,6 +91,7 @@ export class Renderer {
     this.depthTexture = device.createTexture({
       size: [width, height],
       format: "depth24plus",
+      sampleCount: this.sampleCount,
       usage: GPUTextureUsage.RENDER_ATTACHMENT,
     });
     this.depthTextureView = this.depthTexture.createView();
