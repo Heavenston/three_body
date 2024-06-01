@@ -150,11 +150,20 @@ export class Mesh {
 
     for (let axis = 0; axis < 3; axis++) {
       const sideValues = [
-        [0,0], [0,1], [1,0],
+        [0,1], [1,0], [0,0],
         [1,0], [0,1], [1,1],
       ].map(arr => new Vec2(arr[0], arr[1]));
+      function swap() {
+        [sideValues[0], sideValues[2]] = [sideValues[2], sideValues[0]];
+        [sideValues[3], sideValues[5]] = [sideValues[5], sideValues[3]];
+      }
 
+      if (axis !== 1)
+        swap();
       for (let thirdAxisVal = 0; thirdAxisVal <= 1; thirdAxisVal++) {
+        if (thirdAxisVal === 1) {
+          swap();
+        }
         for (let subdivX = 0; subdivX <= subdivs; subdivX++) {
           for (let subdivY = 0; subdivY <= subdivs; subdivY++) {
 
@@ -262,6 +271,8 @@ export class Renderer {
     this.ctx = ctx;
 
     ctx.enable(ctx.DEPTH_TEST);
+    ctx.enable(ctx.CULL_FACE);
+    ctx.cullFace(ctx.FRONT);
   }
 
   public render() {

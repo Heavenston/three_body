@@ -59,11 +59,13 @@ export class MeshComponent extends Component {
 export class RotateComponent extends Component {
   public override update() {
     super.update();
+    const time = this.application.totalTime;
     const dt = this.application.dt;
 
     const transform = this.entity.components.unwrap_get(TransformComponent);
     
     transform.affine = transform.affine.mul(Mat3.rotateY(dt));
-    transform.affine = transform.affine.mul(Mat3.rotateX(dt * 2));
+    transform.affine = transform.affine.mul(Mat3.rotateX(dt * Math.sin(time * Math.PI) * 4));
+    transform.affine = transform.affine.mul(Mat3.rotateZ(dt * Math.cos(time * Math.PI) * Math.sin(time) * 8));
   }
 }
