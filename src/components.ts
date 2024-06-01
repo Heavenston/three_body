@@ -1,8 +1,8 @@
 import { Component, Entity } from "./entity";
-import { G } from "./math";
+import { G, clamp } from "./math";
 import { Color } from "./math/color";
 import { Mat3, Mat4 } from "./math/mat";
-import { Vec3 } from "./math/vec";
+import { Vec2, Vec3 } from "./math/vec";
 import { Mesh } from "./renderer";
 
 export class TransformComponent extends Component {
@@ -37,6 +37,21 @@ export class TransformComponent extends Component {
 
   public rotateZ(angle: number): this {
     this.affine = this.affine.mul(Mat3.rotateZ(angle));
+    return this;
+  }
+
+  public globalRotateX(angle: number): this {
+    this.affine = Mat3.rotateX(angle).mul(this.affine);
+    return this;
+  }
+
+  public globalRotateY(angle: number): this {
+    this.affine = Mat3.rotateY(angle).mul(this.affine);
+    return this;
+  }
+
+  public globalRotateZ(angle: number): this {
+    this.affine = Mat3.rotateZ(angle).mul(this.affine);
     return this;
   }
 
@@ -94,6 +109,7 @@ export class MassiveComponent extends Component {
 
 export class ParticleComponent extends Component {
   public velocity: Vec3 = Vec3.ZERO;
+  public radius: number = 0.5;
 
   public withVelocity(vel: Vec3): this {
     this.velocity = vel;
@@ -122,12 +138,17 @@ export class ParticleComponent extends Component {
       const dist = diff.norm();
       const dir = diff.div(dist);
 
-      force = force.add(dir.mul((G * other_mass.mass) / (dist ** 2)))
+      let actualDist = clamp(dist, this.radius, null);
+
+      force = force.add(dir.mul((G * other_mass.mass) / (actualDist ** 2)))
         .as_vec3();
     }
 
     this.velocity = this.velocity.add(force.mul(dt))
       .as_vec3();
+
+    transform.globalRotateZ(-(this.velocity.x / this.radius) * dt);
+    transform.globalRotateX((this.velocity.z / this.radius) * dt);
 
     transform.translate(this.velocity.mul(dt).as_vec3());
   }

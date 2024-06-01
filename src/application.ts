@@ -8,6 +8,7 @@ import vertexSource from "./shaders/vertex.glsl";
 import fragmentSource from "./shaders/fragment.glsl";
 import { CameraComponent, LookAroundComponent, MassiveComponent, MeshComponent, ParticleComponent, TransformComponent } from "./components";
 import { Mat3 } from "./math/mat";
+import { isZeroApprox } from "./math";
 
 export class Application {
   #defered: (() => void)[] = [];
@@ -76,20 +77,32 @@ export class Application {
       );
     }
 
-    for (let angle = 0; angle < Math.PI*2; angle += Math.PI / 4) {
-      const rotate = Mat3.rotateY(angle);
+    const spawnBall = (
+      pos: Vec3,
+      velocity: Vec3,
+    ) => {
       const sphereEntity = new Entity(this);
       sphereEntity.addComponent(new TransformComponent(sphereEntity)
-        .translate(rotate.mul(new Vec3(0,0,3)))
+        .translate(pos)
       );
       sphereEntity.addComponent(new MeshComponent(sphereEntity, sphereMesh));
       sphereEntity.addComponent(new ParticleComponent(sphereEntity)
-        .withVelocity(rotate.mul(new Vec3(0.8,0,0)))
+        .withVelocity(velocity)
       );
       sphereEntity.addComponent(new MassiveComponent(sphereEntity)
         .withMass(10e9));
       this.spawn(sphereEntity);
+    };
+
+    for (let angle = 0; angle < Math.PI*2; angle += Math.PI / 4) {
+      const rotate = Mat3.rotateY(angle);
+      spawnBall(rotate.mul(new Vec3(0,0,3)), rotate.mul(new Vec3(0.8,0,0)));
     }
+    // spawnBall(new Vec3(-5, 0, 0), new Vec3(1,0,0));
+    // spawnBall(new Vec3(5, 0, 0), new Vec3(-1,0,0));
+    // spawnBall(new Vec3(0, 0, -5), new Vec3(0.25,0,0.25));
+    // spawnBall(new Vec3(0, 0, 5), new Vec3(-0.25,0,-0.25));
+    // spawnBall(new Vec3(5, 0, 0), new Vec3(-1,0,1));
 
     let planeMesh: Mesh;
     {
