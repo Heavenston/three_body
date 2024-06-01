@@ -3,6 +3,7 @@ import { WebGLError, applyUniform, createProgram, createShader } from "./webgl_u
 import { Application } from "./application";
 import { Entity } from "./entity";
 import { CameraComponent, MeshComponent, TransformComponent } from "./components";
+import { Vec2, Vec3 } from "./math/vec";
 
 export class Material {
   constructor(
@@ -96,6 +97,73 @@ export class Mesh {
       ctx.TRIANGLES,
       vertices.length / 5,
     );
+  }
+
+  /// Subdivs at 0 = normal cube
+  public static cubeVertices(subdivs: number): Float32Array {
+    if (subdivs < 0)
+      throw new RangeError("Subdivs mush be positive");
+
+    const vertexCountPerSideForSubdivs0 = 6 * 5;
+    const vertexCountPerSide = vertexCountPerSideForSubdivs0 * (4 ** subdivs);
+    const vertexCount = vertexCountPerSide * 6;
+    const vertices = new Float32Array(vertexCount);
+
+    let nextVertexIndex = 0;
+    function pushVertex(vec: Vec3, uv: Vec2) {
+      vertices[nextVertexIndex++] = vec.x;
+      vertices[nextVertexIndex++] = vec.y;
+      vertices[nextVertexIndex++] = vec.z;
+      vertices[nextVertexIndex++] = uv.u;
+      vertices[nextVertexIndex++] = uv.v;
+    }
+    function addAxis(into: Vec2, axis: number, value: number): Vec3 {
+      if (axis === 0) {
+        return new Vec3(value, into.x, into.y);
+      }
+      else if (axis === 1) {
+        return new Vec3(into.x, value, into.y);
+      }
+      else {
+        return new Vec3(into.x, into.y, value);
+      }
+    }
+
+    for (let axis = 0; axis < 3; axis++) {
+      const sideValues = [
+        [0,0], [0,1], [1,0],
+        [1,0], [0,1], [1,1],
+      ].map(arr => new Vec2(arr[0], arr[1]));
+
+      for (let thirdAxisVal = 0; thirdAxisVal <= 1; thirdAxisVal++) {
+        for (let subdivX = 0; subdivX <= subdivs; subdivX++) {
+          for (let subdivY = 0; subdivY <= subdivs; subdivY++) {
+
+            for (const sv of sideValues){
+              const pos = addAxis(
+                sv.add(subdivX, subdivY).div(subdivs+1).as_vec2(),
+                axis,
+                thirdAxisVal,
+              ).sub(0.5).as_vec3();
+              pushVertex(pos, sv.add(subdivX, subdivY).div(subdivs+1).as_vec2());
+            }
+
+          }
+        }
+      }
+    }
+
+    return vertices;
+  }
+
+  public static normalizeVertices(vertices: Float32Array, radius: number = 1): Float32Array {
+    for (let i = 0; i < vertices.length; i += 5) {
+      const fact = radius / Math.sqrt(vertices[i] ** 2 + vertices[i+1] ** 2 + vertices[i+2] ** 2);
+      vertices[i] *= fact;
+      vertices[i+1] *= fact;
+      vertices[i+2] *= fact;
+    }
+    return vertices;
   }
 
   public clean() {

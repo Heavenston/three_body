@@ -51,59 +51,21 @@ export class Application {
     this.renderer.mainCamera = camera;
 
     const material = Material.fromSources(this.renderer, vertexSource, fragmentSource);
+    console.time("vertices");
+    const vertices = Mesh.cubeVertices(6);
+    console.log("vertex count:", vertices.length);
+    console.timeEnd("vertices");
+    console.time("normalize");
+    Mesh.normalizeVertices(vertices);
+    console.timeEnd("normalize");
     const mesh = Mesh.fromVertices(
       this.renderer,
       material,
-      new Float32Array([
-        // Front
-        0.0, 0.0, 0.0,  0, 0,
-        0.0, 1.0, 0.0,  0, 1,
-        1.0, 0.0, 0.0,  1, 0,
-        1.0, 0.0, 0.0,  1, 0,
-        0.0, 1.0, 0.0,  0, 1,
-        1.0, 1.0, 0.0,  1, 1,
-        // Back
-        0.0, 0.0, 1.0,  0, 0,
-        0.0, 1.0, 1.0,  0, 1,
-        1.0, 0.0, 1.0,  1, 0,
-        1.0, 0.0, 1.0,  1, 0,
-        0.0, 1.0, 1.0,  0, 1,
-        1.0, 1.0, 1.0,  1, 1,
-        // 
-        0.0, 0.0, 0.0,  0, 0,
-        0.0, 0.0, 1.0,  0, 1,
-        0.0, 1.0, 0.0,  1, 0,
-        0.0, 1.0, 0.0,  1, 0,
-        0.0, 0.0, 1.0,  0, 1,
-        0.0, 1.0, 1.0,  1, 1,
-        // 
-        1.0, 0.0, 0.0,  0, 0,
-        1.0, 0.0, 1.0,  0, 1,
-        1.0, 1.0, 0.0,  1, 0,
-        1.0, 1.0, 0.0,  1, 0,
-        1.0, 0.0, 1.0,  0, 1,
-        1.0, 1.0, 1.0,  1, 1,
-        // 
-        0.0, 1.0, 0.0,  0, 0,
-        0.0, 1.0, 1.0,  0, 1,
-        1.0, 1.0, 0.0,  1, 0,
-        1.0, 1.0, 0.0,  1, 0,
-        0.0, 1.0, 1.0,  0, 1,
-        1.0, 1.0, 1.0,  1, 1,
-        // 
-        0.0, 0.0, 0.0,  0, 0,
-        0.0, 0.0, 1.0,  0, 1,
-        1.0, 0.0, 0.0,  1, 0,
-        1.0, 0.0, 0.0,  1, 0,
-        0.0, 0.0, 1.0,  0, 1,
-        1.0, 0.0, 1.0,  1, 1,
-      ]),
+      vertices,
     );
 
     const on = new Entity(this);
-    on.addComponent(new TransformComponent(on)
-      .withTranslation(Vec3.splat(-0.5))
-    );
+    on.addComponent(new TransformComponent(on));
     on.addComponent(new MeshComponent(on, mesh));
     on.addComponent(new RotateComponent(on));
     this.spawn(on);
