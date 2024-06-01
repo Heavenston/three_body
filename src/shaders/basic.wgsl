@@ -1,6 +1,6 @@
 struct Uniforms {
     modelMatrix: mat4x4f,
-    modelViewProjMatrix: mat4x4f,
+    viewProjMatrix: mat4x4f,
     color: vec4f,
 };
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
@@ -20,7 +20,7 @@ fn vertex(
 ) -> VertexOut {
     var out: VertexOut;
     out.worldPos = (uniforms.modelMatrix * position).xyz;
-    out.position = uniforms.modelViewProjMatrix * position;
+    out.position = (uniforms.viewProjMatrix * uniforms.modelMatrix) * position;
     out.normal = normal;
     out.uv = uv;
     return out;

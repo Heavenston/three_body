@@ -151,11 +151,10 @@ export class Renderer {
         return;
 
       const modelMatrix = worldTransform.mul(transform.modelToWorld());
-      const mvpMatrix = viewProjMatrix.mul(modelMatrix);
 
       device.queue.writeBuffer(meshComp.uniformBuffer, 0, new Float32Array([
         ...modelMatrix.transpose().vals,
-        ...mvpMatrix.transpose().vals,
+        ...viewProjMatrix.transpose().vals,
         ...meshComp.color.vals,
       ]));
 
