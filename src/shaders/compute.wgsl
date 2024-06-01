@@ -1,5 +1,10 @@
+struct Uniforms {
+    totalTime: f32,
+}
+
 @group(0) @binding(0) var<storage, read_write> positions: array<f32>;
 @group(0) @binding(1) var<storage, read_write> normals: array<f32>;
+@group(0) @binding(2) var<uniform> uniforms: Uniforms;
 
 fn getPos(i: u32) -> vec3f {
     return vec3f(positions[i*3], positions[i*3+1], positions[i*3+2]);
@@ -24,7 +29,7 @@ fn work_on(
 ) {
     for (var di: u32 = 0; di < 3; di += 1) {
         var pos = getPos(i+di);
-        pos.y = sin(pos.x) * cos(pos.z);
+        pos.y = sin(pos.x + uniforms.totalTime * 2) * cos(pos.z * 0.5 + uniforms.totalTime);
         setPos(i+di, pos);
     }
 

@@ -85,6 +85,7 @@ export class SheetComponent extends Component {
   public readonly renderer: Renderer;
   public mesh: Mesh;
 
+  public uniform: GPUBuffer;
   public pipeline: GPUComputePipeline;
   public bindgroup: GPUBindGroup;
 
@@ -100,6 +101,11 @@ export class SheetComponent extends Component {
       code: computeShaderSource,
     });
 
+    this.uniform = device.createBuffer({
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+      size: 4,
+    });
+
     this.pipeline = device.createComputePipeline({
       layout: "auto",
       compute: {
@@ -113,12 +119,17 @@ export class SheetComponent extends Component {
       entries: [
         { binding: 0, resource: { buffer: this.mesh.positionsBuffer } },
         { binding: 1, resource: { buffer: this.mesh.normalsBuffer } },
+        { binding: 2, resource: { buffer: this.uniform } },
       ],
     });
   }
 
   public override update(): void {
     const device = this.renderer.device;
+
+    device.queue.writeBuffer(this.uniform, 0, new Float32Array([
+      this.application.totalTime,
+    ]));
 
     const commandEncoder = device.createCommandEncoder();
     const passEncoder = commandEncoder.beginComputePass();
@@ -143,11 +154,11 @@ export class SheetComponent extends Component {
   const camera = new Entity(app);
   camera.addComponent(new TransformComponent(camera)
     .rotateX(-0.2)
-    .translate(new Vec3(0, 6, 10))
+    .translate(new Vec3(0, 9, 13))
     .lookAt(Vec3.ZERO)
   );
   camera.addComponent(new CameraComponent(camera)
-    .withClearColor(new Color(0.5, 0.5, 0.5, 1))
+    .withClearColor(new Color(0.1, 0.1, 0.1, 1))
   );
   // camera.addComponent(new LookAroundComponent(camera));
   app.spawn(camera);

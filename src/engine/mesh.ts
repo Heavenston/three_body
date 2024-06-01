@@ -117,7 +117,7 @@ export class Mesh {
       throw new RangeError("Subdivs mush be positive");
 
     const vertexCountPerSideForSubdivs0 = 6;
-    const vertexCountPerSide = vertexCountPerSideForSubdivs0 * (4 ** subdivs);
+    const vertexCountPerSide = vertexCountPerSideForSubdivs0 * ((subdivs+1)**2);
     const vertexCount = vertexCountPerSide * 6;
 
     const positions = new Float32Array(vertexCount * 3);
