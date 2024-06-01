@@ -51,13 +51,20 @@ export class Application {
     this.renderer.mainCamera = camera;
 
     const material = Material.fromSources(this.renderer, vertexSource, fragmentSource);
+
     console.time("vertices");
     const vertices = Mesh.cubeVertices(6);
-    console.log("vertex count:", vertices.length);
     console.timeEnd("vertices");
+    console.log("vertex count:", vertices.length);
+
     console.time("normalize");
     Mesh.normalizeVertices(vertices);
     console.timeEnd("normalize");
+
+    console.time("computeNormals");
+    Mesh.computeNormals(vertices);
+    console.timeEnd("computeNormals");
+
     const mesh = Mesh.fromVertices(
       this.renderer,
       material,

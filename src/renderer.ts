@@ -73,21 +73,36 @@ export class Mesh {
     ctx.bindVertexArray(vao);
 
     const position_loc = ctx.getAttribLocation(material.program, "a_position");
-    ctx.enableVertexAttribArray(position_loc);
+    if (position_loc >= 0)
+      ctx.enableVertexAttribArray(position_loc);
+    const normal_loc = ctx.getAttribLocation(material.program, "a_normal");
+    if (normal_loc >= 0)
+      ctx.enableVertexAttribArray(normal_loc);
     const uv_loc = ctx.getAttribLocation(material.program, "a_uv");
-    ctx.enableVertexAttribArray(uv_loc);
+    if (uv_loc >= 0)
+      ctx.enableVertexAttribArray(uv_loc);
 
-    const stride = 4 * 5;
-    ctx.vertexAttribPointer(
-      position_loc,
-      3, ctx.FLOAT, false,
-      stride, 0,
-    );
-    ctx.vertexAttribPointer(
-      uv_loc,
-      2, ctx.FLOAT, false,
-      stride, 4 * 3,
-    );
+    const floatSize = 4;
+    const vertexLength = 8;
+    const stride = floatSize * vertexLength;
+    if (position_loc >= 0)
+      ctx.vertexAttribPointer(
+        position_loc,
+        3, ctx.FLOAT, false,
+        stride, 0,
+      );
+    if (normal_loc >= 0)
+      ctx.vertexAttribPointer(
+        normal_loc,
+        3, ctx.FLOAT, false,
+        stride, floatSize * 3,
+      );
+    if (uv_loc)
+      ctx.vertexAttribPointer(
+        uv_loc,
+        2, ctx.FLOAT, false,
+        stride, floatSize * 6,
+      );
 
     return new Mesh(
       renderer, 
@@ -95,7 +110,7 @@ export class Mesh {
       vb,
       vao,
       ctx.TRIANGLES,
-      vertices.length / 5,
+      vertices.length / 8,
     );
   }
 
@@ -104,16 +119,20 @@ export class Mesh {
     if (subdivs < 0)
       throw new RangeError("Subdivs mush be positive");
 
-    const vertexCountPerSideForSubdivs0 = 6 * 5;
+    const vertexLength = 8;
+    const vertexCountPerSideForSubdivs0 = 6;
     const vertexCountPerSide = vertexCountPerSideForSubdivs0 * (4 ** subdivs);
     const vertexCount = vertexCountPerSide * 6;
-    const vertices = new Float32Array(vertexCount);
+    const vertices = new Float32Array(vertexCount * vertexLength);
 
     let nextVertexIndex = 0;
     function pushVertex(vec: Vec3, uv: Vec2) {
       vertices[nextVertexIndex++] = vec.x;
       vertices[nextVertexIndex++] = vec.y;
       vertices[nextVertexIndex++] = vec.z;
+      vertices[nextVertexIndex++] = 0;
+      vertices[nextVertexIndex++] = 0;
+      vertices[nextVertexIndex++] = 0;
       vertices[nextVertexIndex++] = uv.u;
       vertices[nextVertexIndex++] = uv.v;
     }
@@ -156,14 +175,52 @@ export class Mesh {
     return vertices;
   }
 
-  public static normalizeVertices(vertices: Float32Array, radius: number = 1): Float32Array {
-    for (let i = 0; i < vertices.length; i += 5) {
+  public static normalizeVertices(vertices: Float32Array, radius: number = 1) {
+    for (let i = 0; i < vertices.length; i += 8) {
       const fact = radius / Math.sqrt(vertices[i] ** 2 + vertices[i+1] ** 2 + vertices[i+2] ** 2);
       vertices[i] *= fact;
       vertices[i+1] *= fact;
       vertices[i+2] *= fact;
     }
-    return vertices;
+  }
+
+  public static computeNormals(vertices: Float32Array) {
+    // vertex stride
+    const vs = 8;
+
+    // not using vertors classes for speed reasons
+    for (let i = 0; i < vertices.length; i += 8 * 3) {
+      const ax = vertices[i+vs*0+0];
+      const ay = vertices[i+vs*0+1];
+      const az = vertices[i+vs*0+2];
+      const bx = vertices[i+vs*1+0];
+      const by = vertices[i+vs*1+1];
+      const bz = vertices[i+vs*1+2];
+      const cx = vertices[i+vs*2+0];
+      const cy = vertices[i+vs*2+1];
+      const cz = vertices[i+vs*2+2];
+
+      const Ax = bx - ax;
+      const Ay = by - ay;
+      const Az = bz - az;
+      const Bx = cx - ax;
+      const By = cy - ay;
+      const Bz = cz - az;
+
+      let Nx = Ay * Bz - Az * By;
+      let Ny = Az * Bx - Ax * Bz;
+      let Nz = Ax * By - Ay * Bx;
+      const length = Math.sqrt(Nx ** 2 + Ny ** 2 + Nz ** 2);
+      Nx /= length;
+      Ny /= length;
+      Nz /= length;
+
+      for (let v = 0; v < 3; v++) {
+        vertices[i+vs*v+3] = Nx;
+        vertices[i+vs*v+4] = Ny;
+        vertices[i+vs*v+5] = Nz;
+      }
+    }
   }
 
   public clean() {
