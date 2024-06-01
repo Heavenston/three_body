@@ -1,27 +1,12 @@
 import { UserError } from "./usererror";
-import { CameraComponent, Material, Mesh, MeshComponent, Renderer } from "./renderer";
-import { Component, Entity } from "./entity";
+import { Material, Mesh, Renderer } from "./renderer";
+import { Entity } from "./entity";
 import { Vec3 } from "./math/vec";
-import { Mat3, Mat4 } from "./math/mat";
 import { Color } from "./math/color";
 
 import vertexSource from "./shaders/vertex.glsl";
 import fragmentSource from "./shaders/fragment.glsl";
-
-export class TransformComponent extends Component {
-  public translation: Vec3 = Vec3.ZERO;
-  public affine: Mat3 = Mat3.IDENT;
-
-  public modelToWorld(): Mat4 {
-    return this.affine.expand()
-      .mul(Mat4.fromTranslation(this.translation));
-  }
-
-  public withTranslation(trans: Vec3): this {
-    this.translation = trans;
-    return this;
-  }
-}
+import { CameraComponent, MeshComponent, TransformComponent } from "./components";
 
 export class Application {
   #defered: (() => void)[] = [];
@@ -69,6 +54,9 @@ export class Application {
         0.0, 0.0, 0.0,  0, 0,
         0.0, 1.0, 0.0,  0, 1,
         1.0, 0.0, 0.0,  1, 0,
+        1.0, 0.0, 0.0,  1, 0,
+        0.0, 1.0, 0.0,  0, 1,
+        1.0, 1.0, 0.0,  1, 1,
       ]),
     );
 

@@ -1,9 +1,8 @@
 import { UserError } from "./usererror";
 import { WebGLError, applyUniform, createProgram, createShader } from "./webgl_utils";
-import { Application, TransformComponent } from "./application";
-import { Mat4 } from "./math/mat";
-import { Component, Entity } from "./entity";
-import { Color } from "./math";
+import { Application } from "./application";
+import { Entity } from "./entity";
+import { CameraComponent, MeshComponent, TransformComponent } from "./components";
 
 export class Material {
   constructor(
@@ -114,41 +113,6 @@ export class Mesh {
   public draw() {
     const ctx = this.renderer.ctx;
     ctx.drawArrays(this.geometry, this.first, this.count);
-  }
-}
-
-export class CameraComponent extends Component {
-  public fov: number = 100;
-  public near: number = 0.01;
-  public far: number = 1_000_000;
-  public aspect: number = 16 / 9;
-
-  public clearColor: Color | null = Color.BLACK;
-
-  public withClearColor(c: Color): this {
-    this.clearColor = c;
-    return this;
-  }
-
-  public view(): Mat4 {
-    const transform = this.entity.components.unwrap_get(TransformComponent);
-    return transform.modelToWorld().inverse() ?? Mat4.IDENT;
-  }
-
-  public projection(): Mat4 {
-    return Mat4.newPerspective(
-      (this.fov / 180) * Math.PI,
-      this.aspect, this.near, this.far,
-    )
-  }
-}
-
-export class MeshComponent extends Component {
-  constructor(
-    entity: Entity,
-    public mesh: Mesh,
-  ) {
-    super(entity);
   }
 }
 
