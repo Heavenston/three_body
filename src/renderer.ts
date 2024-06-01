@@ -68,7 +68,7 @@ export class Mesh {
       throw new WebGLError("Vao create error");
 
     ctx.bindBuffer(ctx.ARRAY_BUFFER, vb);
-    ctx.bufferData(ctx.ARRAY_BUFFER, vertices, ctx.STATIC_DRAW);
+    ctx.bufferData(ctx.ARRAY_BUFFER, vertices, ctx.DYNAMIC_DRAW);
 
     ctx.bindVertexArray(vao);
 
@@ -114,7 +114,7 @@ export class Mesh {
     );
   }
 
-  public static planeVertices(subdivs: number): Float32Array {
+  public static planeVertices(subdivs: number, size: number): Float32Array {
     if (subdivs < 0)
       throw new RangeError("Subdivs mush be positive");
 
@@ -151,6 +151,7 @@ export class Mesh {
           const pos = sv.add(subdivX, subdivY).div(subdivs+1)
             .sub(0.5)
             .addAxis(1, 0)
+            .mul(size)
             .as_vec3();
           pushVertex(pos, sv.add(subdivX, subdivY).div(subdivs+1).as_vec2());
         }
@@ -264,6 +265,15 @@ export class Mesh {
         vertices[i+vs*v+5] = Nz;
       }
     }
+  }
+
+  public changeVertexData(newData: Float32Array) {
+    const ctx = this.renderer.ctx;
+
+    ctx.bindBuffer(ctx.ARRAY_BUFFER, this.vertex_buffer);
+    ctx.bufferData(ctx.ARRAY_BUFFER, newData, ctx.STATIC_DRAW);
+
+    this.count = newData.length / 8;
   }
 
   public clean() {

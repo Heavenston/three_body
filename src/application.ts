@@ -6,9 +6,8 @@ import { Color } from "./math/color";
 
 import vertexSource from "./shaders/vertex.glsl";
 import fragmentSource from "./shaders/fragment.glsl";
-import { CameraComponent, LookAroundComponent, MassiveComponent, MeshComponent, ParticleComponent, TransformComponent } from "./components";
+import { CameraComponent, MassiveComponent, MeshComponent, ParticleComponent, TransformComponent } from "./components";
 import { Mat3 } from "./math/mat";
-import { isZeroApprox } from "./math";
 
 export class Application {
   #defered: (() => void)[] = [];
@@ -58,7 +57,7 @@ export class Application {
     {
       console.log("CREATING SPHERE");
       console.time("vertices");
-      const vertices = Mesh.cubeVertices(6);
+      const vertices = Mesh.cubeVertices(4);
       console.timeEnd("vertices");
       console.log("vertex count:", vertices.length);
 
@@ -108,7 +107,7 @@ export class Application {
     {
       console.log("CREATING PLANE");
       console.time("vertices");
-      const vertices = Mesh.planeVertices(8);
+      const vertices = Mesh.planeVertices(10, 20);
       console.timeEnd("vertices");
       console.log("vertex count:", vertices.length);
 
@@ -124,9 +123,7 @@ export class Application {
     }
 
     const planeEntity = new Entity(this);
-    planeEntity.addComponent(new TransformComponent(planeEntity)
-      .scale(100)
-    );
+    planeEntity.addComponent(new TransformComponent(planeEntity));
     planeEntity.addComponent(new MeshComponent(planeEntity, planeMesh));
     this.spawn(planeEntity);
   }
