@@ -87,13 +87,12 @@ export class LookAroundComponent extends Component {
 
   const camera = new Entity(app);
   camera.addComponent(new TransformComponent(camera)
-    // .rotateX(-0.2)
-    // .translate(new Vec3(0, 6, 8))
-    // .lookAt(Vec3.ZERO)
-    .translate(new Vec3(0, 0, 5))
+    .rotateX(-0.2)
+    .translate(new Vec3(0, 6, 8))
+    .lookAt(Vec3.ZERO)
   );
   camera.addComponent(new CameraComponent(camera)
-    .withClearColor(new Color(0.1, 0.1, 0.1, 1))
+    .withClearColor(new Color(0.5, 0.5, 0.5, 1))
   );
   // camera.addComponent(new LookAroundComponent(camera));
   app.spawn(camera);
