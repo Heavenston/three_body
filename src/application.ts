@@ -6,7 +6,7 @@ import { Color } from "./math/color";
 
 import vertexSource from "./shaders/vertex.glsl";
 import fragmentSource from "./shaders/fragment.glsl";
-import { CameraComponent, MeshComponent, RotateComponent, TransformComponent } from "./components";
+import { CameraComponent, LookAroundComponent, MeshComponent, RotateComponent, TransformComponent } from "./components";
 
 export class Application {
   #defered: (() => void)[] = [];
@@ -44,6 +44,7 @@ export class Application {
     );
     camera.addComponent(new CameraComponent(camera)
       .withClearColor(new Color(0.05, 0.05, 0.05, 1)));
+    camera.addComponent(new LookAroundComponent(camera));
     this.spawn(camera);
     this.renderer.mainCamera = camera;
 
@@ -58,7 +59,7 @@ export class Application {
       console.log("vertex count:", vertices.length);
 
       console.time("normalize");
-      Mesh.normalizeVertices(vertices);
+      Mesh.normalizeVertices(vertices, 0.5);
       console.timeEnd("normalize");
 
       console.time("computeNormals");
@@ -99,7 +100,7 @@ export class Application {
 
     const planeEntity = new Entity(this);
     planeEntity.addComponent(new TransformComponent(planeEntity)
-      .rotateY(Math.PI / 4)
+      .scale(2)
       .translate(new Vec3(0, -0.5, 0))
     );
     planeEntity.addComponent(new MeshComponent(planeEntity, planeMesh));

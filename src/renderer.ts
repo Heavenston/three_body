@@ -149,8 +149,8 @@ export class Mesh {
       for (let subdivY = 0; subdivY <= subdivs; subdivY++) {
         for (const sv of sideValues){
           const pos = sv.add(subdivX, subdivY).div(subdivs+1)
-            .addAxis(1, 0)
             .sub(0.5)
+            .addAxis(1, 0)
             .as_vec3();
           pushVertex(pos, sv.add(subdivX, subdivY).div(subdivs+1).as_vec2());
         }
@@ -305,7 +305,7 @@ export class Renderer {
     this.ctx = ctx;
 
     ctx.enable(ctx.DEPTH_TEST);
-    ctx.enable(ctx.CULL_FACE);
+    // ctx.enable(ctx.CULL_FACE);
     ctx.cullFace(ctx.FRONT);
   }
 

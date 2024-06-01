@@ -94,3 +94,18 @@ export class RotateComponent extends Component {
     transform.affine = transform.affine.mul(Mat3.rotateZ(dt * Math.cos(time * Math.PI) * Math.sin(time) * 8));
   }
 }
+
+export class LookAroundComponent extends Component {
+  public override update() {
+    super.update();
+    const time = this.application.totalTime;
+
+    const transform = this.entity.components.unwrap_get(TransformComponent);
+
+    const angle = time;
+    
+    transform.translation = Mat3.rotateY(angle)
+      .mul(new Vec3(0,0,5));
+    transform.affine = Mat3.rotateY(-angle);
+  }
+}
