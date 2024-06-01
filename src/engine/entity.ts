@@ -68,6 +68,8 @@ export class Entity {
     return this.#components;
   }
 
+  public children: Set<Entity> = new Set();
+
   constructor(public readonly application: Application) {
     
   }
@@ -98,6 +100,10 @@ export class Entity {
 
     for (const comp of this.components.values())
       comp.start();
+
+    for (const child of this.children) {
+      child.spawned();
+    }
   }
 
   public despawned(): void {
@@ -105,6 +111,10 @@ export class Entity {
 
     for (const comp of this.components.values())
       comp.stop();
+
+    for (const child of this.children) {
+      child.despawned();
+    }
   }
 
   public update(): void {
@@ -113,5 +123,9 @@ export class Entity {
 
     for (const comp of this.components.values())
       comp.update();
+
+    for (const child of this.children) {
+      child.update();
+    }
   }
 }

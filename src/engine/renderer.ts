@@ -3,6 +3,7 @@ import { Entity } from "./entity";
 import { CameraComponent, MeshComponent, TransformComponent } from "./components";
 import { UserError } from "./usererror";
 import { clamp } from "../math";
+import { Mat4 } from "../math/mat";
 
 export class Renderer {
   public application: Application;
@@ -138,24 +139,24 @@ export class Renderer {
     const commandEncoder = device.createCommandEncoder();
     const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
 
-
-    for (const entity of this.application.entities) {
+    function render(entity: Entity, worldTransform: Mat4) {
       const meshComp = entity.components.get(MeshComponent);
       if (!meshComp)
-        continue;
+        return;
       const mesh = meshComp.mesh;
       const material = mesh.material;
 
       const transform = entity.components.get(TransformComponent);
       if (!transform)
-        continue;
+        return;
 
-      const modelMatrix = transform.modelToWorld();
+      const modelMatrix = worldTransform.mul(transform.modelToWorld());
       const mvpMatrix = viewProjMatrix.mul(modelMatrix);
 
       device.queue.writeBuffer(meshComp.uniformBuffer, 0, new Float32Array([
         ...modelMatrix.transpose().vals,
         ...mvpMatrix.transpose().vals,
+        ...meshComp.color.vals,
       ]));
 
       passEncoder.setPipeline(material.pipeline);
@@ -168,6 +169,19 @@ export class Renderer {
 
       const vc = mesh.positionsBuffer.size / (3*4);
       passEncoder.draw(vc);
+    }
+    function renderRec(entity: Entity, worldTransform: Mat4) {
+      render(entity, worldTransform);
+      const transform = entity.components.get(TransformComponent);
+      if (transform) {
+        worldTransform = worldTransform.mul(transform.modelToWorld());
+      }
+      for (const child of entity.children) {
+        renderRec(child, worldTransform);
+      }
+    }
+    for (const entity of this.application.entities) {
+      renderRec(entity, Mat4.IDENT);
     }
 
     passEncoder.end();

@@ -188,6 +188,28 @@ export class SheetComponent extends Component {
       vertices,
     );
   }
+  let smallSphereMesh: Mesh;
+  {
+    console.log("CREATING SPHERE");
+    console.time("vertices");
+    const vertices = Mesh.cubeVertices(3);
+    console.timeEnd("vertices");
+    console.log("vertex count:", vertices.positions.length / 3);
+
+    console.time("normalize");
+    Mesh.normalizeVertices(vertices, 0.03);
+    console.timeEnd("normalize");
+
+    console.time("computeNormals");
+    Mesh.computeNormals(vertices);
+    console.timeEnd("computeNormals");
+
+    smallSphereMesh = Mesh.fromVertices(
+      app.renderer,
+      material,
+      vertices,
+    );
+  }
 
   const spawnBall = (
     pos: Vec3,
@@ -197,12 +219,45 @@ export class SheetComponent extends Component {
     sphereEntity.addComponent(new TransformComponent(sphereEntity)
       .translate(pos)
     );
-    sphereEntity.addComponent(new MeshComponent(sphereEntity, sphereMesh));
+    sphereEntity.addComponent(new MeshComponent(sphereEntity, sphereMesh)
+      .withColor(Color.BLACK)
+    );
     sphereEntity.addComponent(new ParticleComponent(sphereEntity)
       .withVelocity(velocity)
     );
     sphereEntity.addComponent(new MassiveComponent(sphereEntity)
       .withMass(10e9));
+
+    const radius = 0.5;
+    const n = 150;
+
+    // Function to convert spherical coordinates to Cartesian coordinates
+    const sphericalToCartesian = (r: number, theta: number, phi: number) => {
+      return new Vec3(
+        r * Math.sin(theta) * Math.cos(phi),
+        r * Math.sin(theta) * Math.sin(phi),
+        r * Math.cos(theta)
+      );
+    };
+
+    // Add n evenly spaced small balls on the surface
+    for (let i = 0; i < n; i++) {
+      // Calculate theta and phi for evenly distributed points
+      const theta = Math.acos(1 - 2 * (i + 0.5) / n); // θ is the polar angle
+      const phi = Math.PI * (1 + Math.sqrt(5)) * (i + 0.5); // φ is the azimuthal angle
+
+      const smallBallPos = sphericalToCartesian(radius, theta, phi)
+        .as_vec3();
+
+      const smallBall = new Entity(app);
+      smallBall.addComponent(new TransformComponent(smallBall)
+        .translate(smallBallPos));
+      smallBall.addComponent(new MeshComponent(smallBall, smallSphereMesh)
+        .withColor(Color.WHITE));
+
+      sphereEntity.children.add(smallBall);
+    }
+    
     app.spawn(sphereEntity);
   };
 

@@ -1,6 +1,7 @@
 struct Uniforms {
     modelMatrix: mat4x4f,
     modelViewProjMatrix: mat4x4f,
+    color: vec4f,
 };
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
  
@@ -27,6 +28,5 @@ fn vertex(
  
 @fragment
 fn fragment(v: VertexOut) -> @location(0) vec4f {
-    let val = clamp(v.worldPos.y + 0.5, 0., 1.);
-    return vec4f(val, val, val, 1.);
+    return uniforms.color;
 }

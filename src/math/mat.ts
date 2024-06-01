@@ -221,16 +221,23 @@ export class Mat4 {
     if (typeof other === "number") {
       return new Mat4(...this.vals.map(val => val * other));
     }
-    // yes this is very slow
-    // what you gonna do about it ?
-    return new Mat4(
-      this.row(0).dot(other.column(0)), this.row(0).dot(other.column(1)), this.row(0).dot(other.column(2)), this.row(0).dot(other.column(3)),
-      this.row(1).dot(other.column(0)), this.row(1).dot(other.column(1)), this.row(1).dot(other.column(2)), this.row(1).dot(other.column(3)),
-      this.row(2).dot(other.column(0)), this.row(2).dot(other.column(1)), this.row(2).dot(other.column(2)), this.row(2).dot(other.column(3)),
-      this.row(3).dot(other.column(0)), this.row(3).dot(other.column(1)), this.row(3).dot(other.column(2)), this.row(3).dot(other.column(3)),
-    );
-  }
 
+    const a = this.vals;
+    const b = other.vals;
+    const result = new Array(16);
+
+    for (let row = 0; row < 4; row++) {
+      for (let col = 0; col < 4; col++) {
+        result[col + row * 4] =
+          a[row * 4] * b[col] +
+          a[row * 4 + 1] * b[col + 4] +
+          a[row * 4 + 2] * b[col + 8] +
+          a[row * 4 + 3] * b[col + 12];
+      }
+    }
+
+    return new Mat4(...result);
+  }
   public div(other: number): Mat4 {
     return new Mat4(...this.vals.map(val => val / other));
   }
@@ -279,4 +286,5 @@ export class Mat4 {
     const cofactorMatrix = this.comatrix();
     const adjugate = cofactorMatrix.transpose();
     return adjugate.div(det);
-  }}
+  }
+}

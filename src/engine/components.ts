@@ -94,6 +94,13 @@ export class MeshComponent extends Component {
   public uniformBuffer: GPUBuffer;
   public bindGroup: GPUBindGroup;
 
+  public color: Color = Color.BLACK;
+
+  public withColor(color: Color): this {
+    this.color = color;
+    return this;
+  }
+
   constructor(
     entity: Entity,
     public mesh: Mesh,
@@ -102,7 +109,7 @@ export class MeshComponent extends Component {
     this.renderer = this.application.renderer;
 
     this.uniformBuffer = this.renderer.device.createBuffer({
-      size: 16 * 4 * 2,
+      size: (16 * 2 + 4) * 4,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
