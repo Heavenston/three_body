@@ -24,6 +24,5 @@ fn vertex(
  
 @fragment
 fn fragment(v: VertexOut) -> @location(0) vec4f {
-    // return vec4f((v.normal + 1.) / 2., 1.);
-    return vec4f(1., 0., 0., 1.);
+    return vec4f((v.normal + 1.) / 2., 1.);
 }

@@ -217,9 +217,9 @@ export class Mesh {
       Nz /= length;
 
       for (let v = 0; v < 3; v++) {
-        vertices.positions[(i+v)*3+0] = Nx;
-        vertices.positions[(i+v)*3+1] = Ny;
-        vertices.positions[(i+v)*3+2] = Nz;
+        vertices.normals[(i+v)*3+0] = Nx;
+        vertices.normals[(i+v)*3+1] = Ny;
+        vertices.normals[(i+v)*3+2] = Nz;
       }
     }
   }
