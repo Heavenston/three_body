@@ -8,13 +8,38 @@ export class TransformComponent extends Component {
   public translation: Vec3 = Vec3.ZERO;
   public affine: Mat3 = Mat3.IDENT;
 
-  public modelToWorld(): Mat4 {
-    return this.affine.expand()
-      .mul(Mat4.fromTranslation(this.translation));
+  public override start(): void {
+      console.log(this);
   }
 
-  public withTranslation(trans: Vec3): this {
-    this.translation = trans;
+  public modelToWorld(): Mat4 {
+    return Mat4.fromTranslation(this.translation)
+      .mul(this.affine.expand());
+  }
+
+  public translate(trans: Vec3): this {
+    this.translation = this.translation.add(trans).as_vec3();
+    return this;
+  }
+
+  public scale(scale: Vec3 | number): this {
+    scale = scale instanceof Vec3 ? scale : Vec3.splat(scale);
+    this.affine = this.affine.mul(Mat3.scale(scale));
+    return this;
+  }
+
+  public rotateX(angle: number): this {
+    this.affine = this.affine.mul(Mat3.rotateX(angle));
+    return this;
+  }
+
+  public rotateY(angle: number): this {
+    this.affine = this.affine.mul(Mat3.rotateY(angle));
+    return this;
+  }
+
+  public rotateZ(angle: number): this {
+    this.affine = this.affine.mul(Mat3.rotateZ(angle));
     return this;
   }
 }

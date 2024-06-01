@@ -16,6 +16,14 @@ export class Mat3 {
     0, 0, 1,
   );
 
+  public static scale(scale: Vec3): Mat3 {
+    return new Mat3(
+      scale.x, 0, 0,
+      0, scale.y, 0,
+      0, 0, scale.z,
+    );
+  }
+
   public static rotateX(angle: number): Mat3 {
     const cos = Math.cos(angle);
     const sin = Math.sin(angle);

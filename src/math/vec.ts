@@ -130,6 +130,12 @@ export class VecN {
     throw new TypeError("wrong types");
   }
 
+  public addAxis(index: number, value: number): VecN {
+    const n = [...this.vals];
+    n.splice(index, 0, value);
+    return new VecN(...n);
+  }
+
   public lerp(other: VecN, t: number): VecN {
     if (this.dims !== other.dims)
       throw new InvalidDimensionsError(this, other);

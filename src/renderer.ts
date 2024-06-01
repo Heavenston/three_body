@@ -97,7 +97,7 @@ export class Mesh {
         3, ctx.FLOAT, false,
         stride, floatSize * 3,
       );
-    if (uv_loc)
+    if (uv_loc >= 0)
       ctx.vertexAttribPointer(
         uv_loc,
         2, ctx.FLOAT, false,
@@ -112,6 +112,52 @@ export class Mesh {
       ctx.TRIANGLES,
       vertices.length / 8,
     );
+  }
+
+  public static planeVertices(subdivs: number): Float32Array {
+    if (subdivs < 0)
+      throw new RangeError("Subdivs mush be positive");
+
+    const vertexLength = 8;
+    const vertexCountForSubdivs0 = 6;
+    const vertexCount = vertexCountForSubdivs0 * (4 ** subdivs);
+    const vertices = new Float32Array(vertexCount * vertexLength);
+
+    let nextVertexIndex = 0;
+    function pushVertex(vec: Vec3, uv: Vec2) {
+      vertices[nextVertexIndex++] = vec.x;
+      vertices[nextVertexIndex++] = vec.y;
+      vertices[nextVertexIndex++] = vec.z;
+      vertices[nextVertexIndex++] = 0;
+      vertices[nextVertexIndex++] = 0;
+      vertices[nextVertexIndex++] = 0;
+      vertices[nextVertexIndex++] = uv.u;
+      vertices[nextVertexIndex++] = uv.v;
+    }
+
+    const sideValues = [
+      [0,1], [1,0], [0,0],
+      [1,0], [0,1], [1,1],
+    ].map(arr => new Vec2(arr[0], arr[1]));
+    function swap() {
+      [sideValues[0], sideValues[2]] = [sideValues[2], sideValues[0]];
+      [sideValues[3], sideValues[5]] = [sideValues[5], sideValues[3]];
+    }
+    swap();
+
+    for (let subdivX = 0; subdivX <= subdivs; subdivX++) {
+      for (let subdivY = 0; subdivY <= subdivs; subdivY++) {
+        for (const sv of sideValues){
+          const pos = sv.add(subdivX, subdivY).div(subdivs+1)
+            .addAxis(1, 0)
+            .sub(0.5)
+            .as_vec3();
+          pushVertex(pos, sv.add(subdivX, subdivY).div(subdivs+1).as_vec2());
+        }
+
+      }
+    }
+    return vertices;
   }
 
   /// Subdivs at 0 = normal cube
@@ -136,17 +182,6 @@ export class Mesh {
       vertices[nextVertexIndex++] = uv.u;
       vertices[nextVertexIndex++] = uv.v;
     }
-    function addAxis(into: Vec2, axis: number, value: number): Vec3 {
-      if (axis === 0) {
-        return new Vec3(value, into.x, into.y);
-      }
-      else if (axis === 1) {
-        return new Vec3(into.x, value, into.y);
-      }
-      else {
-        return new Vec3(into.x, into.y, value);
-      }
-    }
 
     for (let axis = 0; axis < 3; axis++) {
       const sideValues = [
@@ -168,11 +203,10 @@ export class Mesh {
           for (let subdivY = 0; subdivY <= subdivs; subdivY++) {
 
             for (const sv of sideValues){
-              const pos = addAxis(
-                sv.add(subdivX, subdivY).div(subdivs+1).as_vec2(),
-                axis,
-                thirdAxisVal,
-              ).sub(0.5).as_vec3();
+              const pos = sv.add(subdivX, subdivY).div(subdivs+1)
+                .addAxis(axis, thirdAxisVal)
+                .sub(0.5)
+                .as_vec3();
               pushVertex(pos, sv.add(subdivX, subdivY).div(subdivs+1).as_vec2());
             }
 

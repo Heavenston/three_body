@@ -40,42 +40,70 @@ export class Application {
   private init() {
     const camera = new Entity(this);
     camera.addComponent(new TransformComponent(camera)
-      .withTranslation(new Vec3(0, 0, 5))
+      .translate(new Vec3(0, 0, 5))
     );
     camera.addComponent(new CameraComponent(camera)
       .withClearColor(new Color(0.05, 0.05, 0.05, 1)));
     this.spawn(camera);
-    console.log(camera);
-    console.log(camera.components.get(TransformComponent));
-    console.log(camera.components.get(CameraComponent));
     this.renderer.mainCamera = camera;
 
     const material = Material.fromSources(this.renderer, vertexSource, fragmentSource);
 
-    console.time("vertices");
-    const vertices = Mesh.cubeVertices(6);
-    console.timeEnd("vertices");
-    console.log("vertex count:", vertices.length);
+    let sphereMesh: Mesh;
+    {
+      console.log("CREATING SPHERE");
+      console.time("vertices");
+      const vertices = Mesh.cubeVertices(6);
+      console.timeEnd("vertices");
+      console.log("vertex count:", vertices.length);
 
-    console.time("normalize");
-    Mesh.normalizeVertices(vertices);
-    console.timeEnd("normalize");
+      console.time("normalize");
+      Mesh.normalizeVertices(vertices);
+      console.timeEnd("normalize");
 
-    console.time("computeNormals");
-    Mesh.computeNormals(vertices);
-    console.timeEnd("computeNormals");
+      console.time("computeNormals");
+      Mesh.computeNormals(vertices);
+      console.timeEnd("computeNormals");
 
-    const mesh = Mesh.fromVertices(
-      this.renderer,
-      material,
-      vertices,
+      sphereMesh = Mesh.fromVertices(
+        this.renderer,
+        material,
+        vertices,
+      );
+    }
+
+    const sphereEntity = new Entity(this);
+    sphereEntity.addComponent(new TransformComponent(sphereEntity));
+    sphereEntity.addComponent(new MeshComponent(sphereEntity, sphereMesh));
+    sphereEntity.addComponent(new RotateComponent(sphereEntity));
+    this.spawn(sphereEntity);
+
+    let planeMesh: Mesh;
+    {
+      console.log("CREATING PLANE");
+      console.time("vertices");
+      const vertices = Mesh.planeVertices(0);
+      console.timeEnd("vertices");
+      console.log("vertex count:", vertices.length);
+
+      console.time("computeNormals");
+      Mesh.computeNormals(vertices);
+      console.timeEnd("computeNormals");
+
+      planeMesh = Mesh.fromVertices(
+        this.renderer,
+        material,
+        vertices,
+      );
+    }
+
+    const planeEntity = new Entity(this);
+    planeEntity.addComponent(new TransformComponent(planeEntity)
+      .rotateY(Math.PI / 4)
+      .translate(new Vec3(0, -0.5, 0))
     );
-
-    const on = new Entity(this);
-    on.addComponent(new TransformComponent(on));
-    on.addComponent(new MeshComponent(on, mesh));
-    on.addComponent(new RotateComponent(on));
-    this.spawn(on);
+    planeEntity.addComponent(new MeshComponent(planeEntity, planeMesh));
+    this.spawn(planeEntity);
   }
 
   public defer(cb: () => void) {
