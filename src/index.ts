@@ -138,7 +138,7 @@ export class SheetComponent extends Component {
 
     passEncoder.setPipeline(this.pipeline);
     passEncoder.setBindGroup(0, this.bindgroup);
-    passEncoder.dispatchWorkgroups(count / 3, 1, 1);
+    passEncoder.dispatchWorkgroups((count / 3) / 64, 1, 1);
 
     passEncoder.end();
     device.queue.submit([commandEncoder.finish()]);
@@ -158,7 +158,7 @@ export class SheetComponent extends Component {
     .lookAt(Vec3.ZERO)
   );
   camera.addComponent(new CameraComponent(camera)
-    .withClearColor(new Color(0.1, 0.1, 0.1, 1))
+    .withClearColor(new Color(0., 0., 0., 1))
   );
   // camera.addComponent(new LookAroundComponent(camera));
   app.spawn(camera);
@@ -170,7 +170,7 @@ export class SheetComponent extends Component {
   {
     console.log("CREATING SPHERE");
     console.time("vertices");
-    const vertices = Mesh.cubeVertices(4);
+    const vertices = Mesh.cubeVertices(10);
     console.timeEnd("vertices");
     console.log("vertex count:", vertices.positions.length / 3);
 
@@ -220,7 +220,7 @@ export class SheetComponent extends Component {
   {
     console.log("CREATING PLANE");
     console.time("vertices");
-    const vertices = Mesh.planeVertices(100, 20);
+    const vertices = Mesh.planeVertices(200, 40);
     console.timeEnd("vertices");
     console.log("vertex count:", vertices.positions.length / 3);
 

@@ -30,6 +30,7 @@ fn work_on(
     for (var di: u32 = 0; di < 3; di += 1) {
         var pos = getPos(i+di);
         pos.y = sin(pos.x + uniforms.totalTime * 2) * cos(pos.z * 0.5 + uniforms.totalTime);
+        pos.y = -0.5;
         setPos(i+di, pos);
     }
 
@@ -46,7 +47,7 @@ fn work_on(
     }
 }
  
-@compute @workgroup_size(1) fn displace(
+@compute @workgroup_size(64) fn displace(
     @builtin(global_invocation_id) global_invocation_id : vec3<u32>,
 ) {
     let index = global_invocation_id.x;

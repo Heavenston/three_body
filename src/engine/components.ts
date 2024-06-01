@@ -102,7 +102,7 @@ export class MeshComponent extends Component {
     this.renderer = this.application.renderer;
 
     this.uniformBuffer = this.renderer.device.createBuffer({
-      size: 16 * 4,
+      size: 16 * 4 * 2,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 

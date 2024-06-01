@@ -152,6 +152,7 @@ export class Renderer {
       const mvpMatrix = viewProjMatrix.mul(modelMatrix);
 
       device.queue.writeBuffer(meshComp.uniformBuffer, 0, new Float32Array([
+        ...modelMatrix.transpose().vals,
         ...mvpMatrix.transpose().vals,
       ]));
 
