@@ -135,6 +135,8 @@ export class Renderer {
     if (!ctx)
       throw new UserError("No context?");
     this.ctx = ctx;
+
+    ctx.enable(ctx.DEPTH_TEST);
   }
 
   public render() {
@@ -152,7 +154,10 @@ export class Renderer {
 
     if (clearColor) {
       ctx.clearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
-      ctx.clear(ctx.COLOR_BUFFER_BIT);
+      ctx.clear(ctx.COLOR_BUFFER_BIT | ctx.DEPTH_BUFFER_BIT);
+    }
+    else {
+      ctx.clear(ctx.DEPTH_BUFFER_BIT);
     }
 
     const viewMatrix = cameraComponent.view();
