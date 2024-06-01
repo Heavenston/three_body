@@ -23,21 +23,21 @@ export class Material {
         buffers: [
           // position
           {
-            arrayStride: 0,
+            arrayStride: 3 * 4,
             attributes: [
               { shaderLocation: 0, offset: 0, format: "float32x3" },
             ],
           },
           // normals
           {
-            arrayStride: 0,
+            arrayStride: 3 * 4,
             attributes: [
               { shaderLocation: 1, offset: 0, format: "float32x3" },
             ],
           },
           // uvs
           {
-            arrayStride: 0,
+            arrayStride: 2 * 4,
             attributes: [
               { shaderLocation: 2, offset: 0, format: "float32x2" },
             ],
@@ -53,7 +53,8 @@ export class Material {
 
       primitive: {
         topology: "triangle-list",
-        cullMode: "back",
+        cullMode: "none",
+        // cullMode: "back",
       },
 
       depthStencil: {

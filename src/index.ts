@@ -87,12 +87,14 @@ export class LookAroundComponent extends Component {
 
   const camera = new Entity(app);
   camera.addComponent(new TransformComponent(camera)
-    .rotateX(-0.2)
-    .translate(new Vec3(0, 6, 8))
-    .lookAt(Vec3.ZERO)
+    // .rotateX(-0.2)
+    // .translate(new Vec3(0, 6, 8))
+    // .lookAt(Vec3.ZERO)
+    .translate(new Vec3(0, 0, 5))
   );
   camera.addComponent(new CameraComponent(camera)
-    .withClearColor(new Color(0.05, 0.05, 0.05, 1)));
+    .withClearColor(new Color(0.1, 0.1, 0.1, 1))
+  );
   // camera.addComponent(new LookAroundComponent(camera));
   app.spawn(camera);
   app.renderer.mainCamera = camera;
@@ -153,7 +155,7 @@ export class LookAroundComponent extends Component {
   {
     console.log("CREATING PLANE");
     console.time("vertices");
-    const vertices = Mesh.planeVertices(10, 20);
+    const vertices = Mesh.planeVertices(1, 20);
     console.timeEnd("vertices");
     console.log("vertex count:", vertices.positions.length / 3);
 

@@ -163,7 +163,8 @@ export class Renderer {
       passEncoder.setVertexBuffer(1, mesh.normalsBuffer);
       passEncoder.setVertexBuffer(2, mesh.uvsBuffer);
 
-      passEncoder.draw(mesh.positionsBuffer.size / 3);
+      const vc = mesh.positionsBuffer.size / (3*4);
+      passEncoder.draw(vc);
     }
 
     passEncoder.end();
