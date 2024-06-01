@@ -166,6 +166,20 @@ export class VecN {
 
     return new VecN(...this.vals.map((val, i) => clamp(val, min?.vals[i] ?? null, max?.vals[i] ?? null)))
   }
+
+  public as_vec2(): Vec2 {
+    if (this.vals.length < 2) {
+      throw new Error("Cannot convert to vec2: not enough elements");
+    }
+    return new Vec2(this.vals[0], this.vals[1]);
+  }
+
+  public as_vec3(): Vec3 {
+    if (this.vals.length < 3) {
+      throw new Error("Cannot convert to vec3: not enough elements");
+    }
+    return new Vec3(this.vals[0], this.vals[1], this.vals[2]);
+  }
 }
 
 export class Vec2 extends VecN {

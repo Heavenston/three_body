@@ -6,7 +6,7 @@ import { Color } from "./math/color";
 
 import vertexSource from "./shaders/vertex.glsl";
 import fragmentSource from "./shaders/fragment.glsl";
-import { CameraComponent, MeshComponent, TransformComponent } from "./components";
+import { CameraComponent, MeshComponent, RotateComponent, TransformComponent } from "./components";
 
 export class Application {
   #defered: (() => void)[] = [];
@@ -40,10 +40,14 @@ export class Application {
   private init() {
     const camera = new Entity(this);
     camera.addComponent(new TransformComponent(camera)
-      .withTranslation(new Vec3(0, 0, 1)));
+      .withTranslation(new Vec3(0, 0, 5))
+    );
     camera.addComponent(new CameraComponent(camera)
       .withClearColor(new Color(0.05, 0.05, 0.05, 1)));
     this.spawn(camera);
+    console.log(camera);
+    console.log(camera.components.get(TransformComponent));
+    console.log(camera.components.get(CameraComponent));
     this.renderer.mainCamera = camera;
 
     const material = Material.fromSources(this.renderer, vertexSource, fragmentSource);
@@ -54,15 +58,27 @@ export class Application {
         0.0, 0.0, 0.0,  0, 0,
         0.0, 1.0, 0.0,  0, 1,
         1.0, 0.0, 0.0,  1, 0,
+
         1.0, 0.0, 0.0,  1, 0,
         0.0, 1.0, 0.0,  0, 1,
         1.0, 1.0, 0.0,  1, 1,
+
+        0.0, 0.0, 1.0,  0, 0,
+        0.0, 1.0, 1.0,  0, 1,
+        1.0, 0.0, 1.0,  1, 0,
+
+        1.0, 0.0, 1.0,  1, 0,
+        0.0, 1.0, 1.0,  0, 1,
+        1.0, 1.0, 1.0,  1, 1,
       ]),
     );
 
     const on = new Entity(this);
-    on.addComponent(new TransformComponent(on));
+    on.addComponent(new TransformComponent(on)
+      .withTranslation(Vec3.splat(-0.5))
+    );
     on.addComponent(new MeshComponent(on, mesh));
+    on.addComponent(new RotateComponent(on));
     this.spawn(on);
   }
 
@@ -95,6 +111,10 @@ export class Application {
 
     this.#defered.forEach(cb => cb());
     this.#defered = [];
+
+    for (const entity of this.#entities) {
+      entity.update();
+    }
 
     this.updateStatusBar();
 

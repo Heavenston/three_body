@@ -158,7 +158,7 @@ export class Renderer {
     const viewMatrix = cameraComponent.view();
     const projectionMatrix = cameraComponent.projection();
 
-    const viewProjMatrix = viewMatrix.mul(projectionMatrix);
+    const viewProjMatrix = projectionMatrix.mul(viewMatrix);
 
     for (const entity of this.application.entities) {
       const meshComp = entity.components.get(MeshComponent);
@@ -171,7 +171,7 @@ export class Renderer {
         continue;
 
       const modelMatrix = transform.modelToWorld();
-      const mvpMatrix = modelMatrix.mul(viewProjMatrix);
+      const mvpMatrix = viewProjMatrix.mul(modelMatrix);
 
       mesh.material.bind();
       mesh.bind();

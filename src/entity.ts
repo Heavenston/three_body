@@ -3,9 +3,13 @@ import { Application } from "./application";
 export type ComponentClass<T extends Component = Component> = new (...args: any[]) => T;
 
 export abstract class Component {
+  public readonly application: Application;
+
   constructor(
     public readonly entity: Entity,
-  ) {}
+  ) {
+    this.application = entity.application;
+  }
 
   public update(): void {}
 

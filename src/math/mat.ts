@@ -89,7 +89,17 @@ export class Mat3 {
     return new Mat3(...this.vals.map((v, i) => v - other.vals[i]));
   }
 
-  public mul(other: Mat3): Mat3 {
+  public mul(vec: Vec3): Vec3;
+  public mul(mat: Mat3): Mat3;
+  public mul(other: Mat3 | Vec3): Mat3 | Vec3 {
+    if (other instanceof Vec3) {
+      return new Vec3(
+        this.column(0).dot(other),
+        this.column(1).dot(other),
+        this.column(2).dot(other),
+      );
+    }
+
     // yes this is very slow
     // what you gonna do about it ?
     return new Mat3(
@@ -125,21 +135,29 @@ export class Mat4 {
     );
   }
 
-  public static newPerspective(
-    fov: number,
+  public static newPerspective(cfg: {
+    fov_radians: number,
     aspect: number,
     near: number,
     far: number,
-  ): Mat4 {
-    const f = Math.tan(Math.PI * 0.5 - 0.5 * fov);
-    const rangeInv = 1 / (near - far);
+  }): Mat4 {
+    const f = Math.tan(Math.PI * 0.5 - 0.5 * cfg.fov_radians);
+    const rangeInv = 1 / (cfg.near - cfg.far);
 
     return new Mat4(
-      f / aspect, 0, 0,                          0,
-      0,          f, 0,                          0,
-      0,          0, (near + far) * rangeInv,   -1,
-      0,          0, near * far * rangeInv * 2,  0
-    );
+      f / cfg.aspect, 0, 0,                                   0,
+      0,              f, 0,                                   0,
+      0,              0, (cfg.near + cfg.far) * rangeInv,    -1,
+      0,              0, cfg.near * cfg.far * rangeInv * 2,   0
+    ).transpose();
+    // const f = 1 / Math.tan(fov_radians / 2);
+
+    // return new Mat4(
+    //   f,     0,     0,                          0,
+    //   0,     f,     0,                          0,
+    //   0,     0,     -far / (far - near),        -far * near / (far - near),
+    //   0,     0,     -1,                         1,
+    // );
   }
 
   public get(row: number, col: number): number {
@@ -223,14 +241,14 @@ export class Mat4 {
       const determinant3x3 = (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number): number => {
         return a * (e * i - f * h) - b * (d * i - f * g) + c * (d * h - e * g);
       };
-      return ((r + c) % 2 === 0 ? 1 : -1) * (determinant3x3 as any)(...submat);
+      return ((r + c) % 2 === 0 ? 1 : -1) * determinant3x3(submat[0], submat[1], submat[2], submat[3], submat[4], submat[5], submat[6], submat[7], submat[8]);
     };
 
     return new Mat4(
-      cofactor(0, 0), cofactor(1, 0), cofactor(2, 0), cofactor(3, 0),
-      cofactor(0, 1), cofactor(1, 1), cofactor(2, 1), cofactor(3, 1),
-      cofactor(0, 2), cofactor(1, 2), cofactor(2, 2), cofactor(3, 2),
-      cofactor(0, 3), cofactor(1, 3), cofactor(2, 3), cofactor(3, 3),
+      cofactor(0, 0), cofactor(0, 1), cofactor(0, 2), cofactor(0, 3),
+      cofactor(1, 0), cofactor(1, 1), cofactor(1, 2), cofactor(1, 3),
+      cofactor(2, 0), cofactor(2, 1), cofactor(2, 2), cofactor(2, 3),
+      cofactor(3, 0), cofactor(3, 1), cofactor(3, 2), cofactor(3, 3),
     );
   }
 
@@ -241,5 +259,4 @@ export class Mat4 {
     const cofactorMatrix = this.comatrix();
     const adjugate = cofactorMatrix.transpose();
     return adjugate.div(det);
-  }
-}
+  }}

@@ -20,7 +20,7 @@ export class TransformComponent extends Component {
 }
 
 export class CameraComponent extends Component {
-  public fov: number = 100;
+  public fov_degrees: number = 45;
   public near: number = 0.01;
   public far: number = 1_000_000;
   public aspect: number = 16 / 9;
@@ -38,10 +38,12 @@ export class CameraComponent extends Component {
   }
 
   public projection(): Mat4 {
-    return Mat4.newPerspective(
-      (this.fov / 180) * Math.PI,
-      this.aspect, this.near, this.far,
-    )
+    return Mat4.newPerspective({
+      fov_radians: (this.fov_degrees / 180) * Math.PI,
+      aspect: this.aspect,
+      near: this.near,
+      far: this.far,
+    });
   }
 }
 
@@ -51,5 +53,16 @@ export class MeshComponent extends Component {
     public mesh: Mesh,
   ) {
     super(entity);
+  }
+}
+
+export class RotateComponent extends Component {
+  public override update() {
+    super.update();
+    const dt = this.application.dt;
+
+    const transform = this.entity.components.unwrap_get(TransformComponent);
+    
+    transform.affine = transform.affine.mul(Mat3.rotateX(dt));
   }
 }
