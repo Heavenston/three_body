@@ -4,3 +4,7 @@ declare module "*.glsl" {
   export default content;
 }
 
+declare module 'bundle-text:*' {
+  const value: string;
+  export default value;
+}

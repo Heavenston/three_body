@@ -5,8 +5,7 @@ import { CameraComponent, MeshComponent, TransformComponent } from "./engine/com
 import { Vec3 } from "./math/vec";
 import { Color } from "./math/color";
 
-import vertexSource from "./shaders/vertex.glsl";
-import fragmentSource from "./shaders/fragment.glsl";
+import shaderSource from "bundle-text:./shaders/basic.wgsl";
 import { Mat3 } from "./math/mat";
 import { G, clamp } from "./math";
 import { Material } from "./material";
@@ -84,7 +83,7 @@ export class LookAroundComponent extends Component {
   const canvas = document.getElementById("canvas");
   if (!canvas || !(canvas instanceof HTMLCanvasElement))
     throw new Error("no");
-  const app = new Application(canvas);
+  const app = await Application.create(canvas);
 
   const camera = new Entity(app);
   camera.addComponent(new TransformComponent(camera)
@@ -98,7 +97,7 @@ export class LookAroundComponent extends Component {
   app.spawn(camera);
   app.renderer.mainCamera = camera;
 
-  const material = Material.fromSources(app.renderer, vertexSource, fragmentSource);
+  const material = Material.fromSource(app.renderer, shaderSource);
 
   let sphereMesh: Mesh;
   {
@@ -106,7 +105,7 @@ export class LookAroundComponent extends Component {
     console.time("vertices");
     const vertices = Mesh.cubeVertices(4);
     console.timeEnd("vertices");
-    console.log("vertex count:", vertices.length);
+    console.log("vertex count:", vertices.positions.length / 3);
 
     console.time("normalize");
     Mesh.normalizeVertices(vertices, 0.5);
@@ -156,7 +155,7 @@ export class LookAroundComponent extends Component {
     console.time("vertices");
     const vertices = Mesh.planeVertices(10, 20);
     console.timeEnd("vertices");
-    console.log("vertex count:", vertices.length);
+    console.log("vertex count:", vertices.positions.length / 3);
 
     console.time("computeNormals");
     Mesh.computeNormals(vertices);

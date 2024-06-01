@@ -3,6 +3,7 @@ import { Color } from "~/src/math/color";
 import { Mat3, Mat4 } from "~/src/math/mat";
 import { Vec3 } from "~/src/math/vec";
 import { Mesh } from "./mesh";
+import { Renderer } from "./renderer";
 
 export class TransformComponent extends Component {
   public translation: Vec3 = Vec3.ZERO;
@@ -89,10 +90,27 @@ export class CameraComponent extends Component {
 }
 
 export class MeshComponent extends Component {
+  public readonly renderer: Renderer;
+  public uniformBuffer: GPUBuffer;
+  public bindGroup: GPUBindGroup;
+
   constructor(
     entity: Entity,
     public mesh: Mesh,
   ) {
     super(entity);
+    this.renderer = this.application.renderer;
+
+    this.uniformBuffer = this.renderer.device.createBuffer({
+      size: 16 * 4,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
+
+    this.bindGroup = this.renderer.device.createBindGroup({
+      layout: mesh.material.pipeline.getBindGroupLayout(0),
+      entries: [
+        { binding: 0, resource: { buffer: this.uniformBuffer } },
+      ]
+    });
   }
 }

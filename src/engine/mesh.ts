@@ -2,43 +2,82 @@ import { Material } from "../material";
 import { Vec2, Vec3 } from "../math/vec";
 import { Renderer } from "./renderer";
 
+export type Vertices = {
+  positions: Float32Array,
+  normals: Float32Array,
+  uvs: Float32Array,
+};
+
 export class Mesh {
   constructor(
     public renderer: Renderer,
     public material: Material,
+    public positionsBuffer: GPUBuffer,
+    public normalsBuffer: GPUBuffer,
+    public uvsBuffer: GPUBuffer,
   ) {}
 
   public static fromVertices(
     renderer: Renderer,
     material: Material,
-    vertices: Float32Array,
+    { positions, normals, uvs }: Vertices,
   ): Mesh {
+    const device = renderer.device;
+
+    const positionsBuffer = device.createBuffer({
+      size: positions.length * 4,
+      usage: GPUBufferUsage.VERTEX,
+      mappedAtCreation: true,
+    });
+    new Float32Array(positionsBuffer.getMappedRange()).set(positions);
+    positionsBuffer.unmap();
+    const normalsBuffer = device.createBuffer({
+      size: normals.length * 4,
+      usage: GPUBufferUsage.VERTEX,
+      mappedAtCreation: true,
+    });
+    new Float32Array(normalsBuffer.getMappedRange()).set(normals);
+    normalsBuffer.unmap();
+    const uvsBuffer = device.createBuffer({
+      size: uvs.length * 4,
+      usage: GPUBufferUsage.VERTEX,
+      mappedAtCreation: true,
+    });
+    new Float32Array(uvsBuffer.getMappedRange()).set(uvs);
+    uvsBuffer.unmap();
 
     return new Mesh(
       renderer, 
       material,
+      positionsBuffer,
+      normalsBuffer,
+      uvsBuffer,
     );
   }
 
-  public static planeVertices(subdivs: number, size: number): Float32Array {
+  public static planeVertices(subdivs: number, size: number): Vertices {
     if (subdivs < 0)
       throw new RangeError("Subdivs mush be positive");
 
-    const vertexLength = 8;
     const vertexCountForSubdivs0 = 6;
     const vertexCount = vertexCountForSubdivs0 * (4 ** subdivs);
-    const vertices = new Float32Array(vertexCount * vertexLength);
 
-    let nextVertexIndex = 0;
+    const positions = new Float32Array(vertexCount * 3);
+    const normals = new Float32Array(vertexCount * 3);
+    const uvs = new Float32Array(vertexCount * 2);
+
+    let positionPointer = 0;
+    let normalPointer = 0;
+    let uvPointer = 0;
     function pushVertex(vec: Vec3, uv: Vec2) {
-      vertices[nextVertexIndex++] = vec.x;
-      vertices[nextVertexIndex++] = vec.y;
-      vertices[nextVertexIndex++] = vec.z;
-      vertices[nextVertexIndex++] = 0;
-      vertices[nextVertexIndex++] = 0;
-      vertices[nextVertexIndex++] = 0;
-      vertices[nextVertexIndex++] = uv.u;
-      vertices[nextVertexIndex++] = uv.v;
+      positions[positionPointer++] = vec.x;
+      positions[positionPointer++] = vec.y;
+      positions[positionPointer++] = vec.z;
+      normals[normalPointer++] = 0;
+      normals[normalPointer++] = 0;
+      normals[normalPointer++] = 0;
+      uvs[uvPointer++] = uv.u;
+      uvs[uvPointer++] = uv.v;
     }
 
     const sideValues = [
@@ -64,30 +103,38 @@ export class Mesh {
 
       }
     }
-    return vertices;
+    return {
+      positions,
+      normals,
+      uvs,
+    };
   }
 
   /// Subdivs at 0 = normal cube
-  public static cubeVertices(subdivs: number): Float32Array {
+  public static cubeVertices(subdivs: number): Vertices {
     if (subdivs < 0)
       throw new RangeError("Subdivs mush be positive");
 
-    const vertexLength = 8;
     const vertexCountPerSideForSubdivs0 = 6;
     const vertexCountPerSide = vertexCountPerSideForSubdivs0 * (4 ** subdivs);
     const vertexCount = vertexCountPerSide * 6;
-    const vertices = new Float32Array(vertexCount * vertexLength);
 
-    let nextVertexIndex = 0;
+    const positions = new Float32Array(vertexCount * 3);
+    const normals = new Float32Array(vertexCount * 3);
+    const uvs = new Float32Array(vertexCount * 2);
+
+    let positionPointer = 0;
+    let normalPointer = 0;
+    let uvPointer = 0;
     function pushVertex(vec: Vec3, uv: Vec2) {
-      vertices[nextVertexIndex++] = vec.x;
-      vertices[nextVertexIndex++] = vec.y;
-      vertices[nextVertexIndex++] = vec.z;
-      vertices[nextVertexIndex++] = 0;
-      vertices[nextVertexIndex++] = 0;
-      vertices[nextVertexIndex++] = 0;
-      vertices[nextVertexIndex++] = uv.u;
-      vertices[nextVertexIndex++] = uv.v;
+      positions[positionPointer++] = vec.x;
+      positions[positionPointer++] = vec.y;
+      positions[positionPointer++] = vec.z;
+      normals[normalPointer++] = 0;
+      normals[normalPointer++] = 0;
+      normals[normalPointer++] = 0;
+      uvs[uvPointer++] = uv.u;
+      uvs[uvPointer++] = uv.v;
     }
 
     for (let axis = 0; axis < 3; axis++) {
@@ -122,33 +169,37 @@ export class Mesh {
       }
     }
 
-    return vertices;
+    return {
+      positions,
+      normals,
+      uvs,
+    };
   }
 
-  public static normalizeVertices(vertices: Float32Array, radius: number = 1) {
-    for (let i = 0; i < vertices.length; i += 8) {
-      const fact = radius / Math.sqrt(vertices[i] ** 2 + vertices[i+1] ** 2 + vertices[i+2] ** 2);
-      vertices[i] *= fact;
-      vertices[i+1] *= fact;
-      vertices[i+2] *= fact;
+  public static normalizeVertices(vertices: Vertices, radius: number = 1) {
+    for (let i = 0; i < vertices.positions.length; i += 3) {
+      const ax = vertices.positions[i+0];
+      const ay = vertices.positions[i+1];
+      const az = vertices.positions[i+2];
+      const fact = radius / Math.sqrt(ax ** 2 + ay ** 2 + az ** 2);
+      vertices.positions[i+0] *= fact;
+      vertices.positions[i+1] *= fact;
+      vertices.positions[i+2] *= fact;
     }
   }
 
-  public static computeNormals(vertices: Float32Array) {
-    // vertex stride
-    const vs = 8;
-
+  public static computeNormals(vertices: Vertices) {
     // not using vertors classes for speed reasons
-    for (let i = 0; i < vertices.length; i += 8 * 3) {
-      const ax = vertices[i+vs*0+0];
-      const ay = vertices[i+vs*0+1];
-      const az = vertices[i+vs*0+2];
-      const bx = vertices[i+vs*1+0];
-      const by = vertices[i+vs*1+1];
-      const bz = vertices[i+vs*1+2];
-      const cx = vertices[i+vs*2+0];
-      const cy = vertices[i+vs*2+1];
-      const cz = vertices[i+vs*2+2];
+    for (let i = 0; i < vertices.positions.length / 3; i += 3) {
+      const ax = vertices.positions[(i+0)*3+0];
+      const ay = vertices.positions[(i+0)*3+1];
+      const az = vertices.positions[(i+0)*3+2];
+      const bx = vertices.positions[(i+1)*3+0];
+      const by = vertices.positions[(i+1)*3+1];
+      const bz = vertices.positions[(i+1)*3+2];
+      const cx = vertices.positions[(i+2)*3+0];
+      const cy = vertices.positions[(i+2)*3+1];
+      const cz = vertices.positions[(i+2)*3+2];
 
       const Ax = bx - ax;
       const Ay = by - ay;
@@ -166,9 +217,9 @@ export class Mesh {
       Nz /= length;
 
       for (let v = 0; v < 3; v++) {
-        vertices[i+vs*v+3] = Nx;
-        vertices[i+vs*v+4] = Ny;
-        vertices[i+vs*v+5] = Nz;
+        vertices.positions[(i+v)*3+0] = Nx;
+        vertices.positions[(i+v)*3+1] = Ny;
+        vertices.positions[(i+v)*3+2] = Nz;
       }
     }
   }

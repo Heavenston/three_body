@@ -19,7 +19,13 @@ export class Application {
     return this.#entities;
   }
 
-  public constructor(canvas: HTMLCanvasElement) {
+  public static async create(canvas: HTMLCanvasElement): Promise<Application> {
+    const app = new Application(canvas);
+    app.renderer = await Renderer.create(app, canvas);
+    return app;
+  }
+
+  private constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
 
     const statusBar = document.getElementById("statusBar");
@@ -27,7 +33,9 @@ export class Application {
       throw new UserError("Missing status bar element");
     this.statusBar = statusBar;
 
-    this.renderer = new Renderer(this, this.canvas);
+    // do not worry
+    // shush
+    this.renderer = null as any;
   }
 
   public async start() {
