@@ -6,10 +6,12 @@ import { Vec3 } from "./math/vec";
 import { Color } from "./math/color";
 
 import shaderSource from "bundle-text:./shaders/basic.wgsl";
+import computeShaderSource from "bundle-text:./shaders/compute.wgsl";
 import { Mat3 } from "./math/mat";
 import { G, clamp } from "./math";
 import { Material } from "./material";
 import { Mesh } from "./engine/mesh";
+import { Renderer } from "./engine/renderer";
 
 export class MassiveComponent extends Component {
   public mass: number = 1;
@@ -79,6 +81,59 @@ export class LookAroundComponent extends Component {
   }
 }
 
+export class SheetComponent extends Component {
+  public readonly renderer: Renderer;
+  public mesh: Mesh;
+
+  public pipeline: GPUComputePipeline;
+  public bindgroup: GPUBindGroup;
+
+  constructor(
+    entity: Entity,
+  ) {
+    super(entity);
+    this.mesh = entity.components.unwrap_get(MeshComponent).mesh;
+    this.renderer = entity.application.renderer;
+    const device = this.renderer.device;
+
+    const shaderModule = device.createShaderModule({
+      code: computeShaderSource,
+    });
+
+    this.pipeline = device.createComputePipeline({
+      layout: "auto",
+      compute: {
+        module: shaderModule,
+        entryPoint: "displace",
+      }
+    });
+
+    this.bindgroup = device.createBindGroup({
+      layout: this.pipeline.getBindGroupLayout(0),
+      entries: [
+        { binding: 0, resource: { buffer: this.mesh.positionsBuffer } },
+        { binding: 1, resource: { buffer: this.mesh.normalsBuffer } },
+      ],
+    });
+  }
+
+  public override update(): void {
+    const device = this.renderer.device;
+
+    const commandEncoder = device.createCommandEncoder();
+    const passEncoder = commandEncoder.beginComputePass();
+
+    const count = this.mesh.positionsBuffer.size / (4 * 3);
+
+    passEncoder.setPipeline(this.pipeline);
+    passEncoder.setBindGroup(0, this.bindgroup);
+    passEncoder.dispatchWorkgroups(count / 3, 1, 1);
+
+    passEncoder.end();
+    device.queue.submit([commandEncoder.finish()]);
+  }
+}
+
 (async () => {
   const canvas = document.getElementById("canvas");
   if (!canvas || !(canvas instanceof HTMLCanvasElement))
@@ -88,7 +143,7 @@ export class LookAroundComponent extends Component {
   const camera = new Entity(app);
   camera.addComponent(new TransformComponent(camera)
     .rotateX(-0.2)
-    .translate(new Vec3(0, 6, 8))
+    .translate(new Vec3(0, 6, 10))
     .lookAt(Vec3.ZERO)
   );
   camera.addComponent(new CameraComponent(camera)
@@ -154,7 +209,7 @@ export class LookAroundComponent extends Component {
   {
     console.log("CREATING PLANE");
     console.time("vertices");
-    const vertices = Mesh.planeVertices(1, 20);
+    const vertices = Mesh.planeVertices(100, 20);
     console.timeEnd("vertices");
     console.log("vertex count:", vertices.positions.length / 3);
 
@@ -172,6 +227,7 @@ export class LookAroundComponent extends Component {
   const planeEntity = new Entity(app);
   planeEntity.addComponent(new TransformComponent(planeEntity));
   planeEntity.addComponent(new MeshComponent(planeEntity, planeMesh));
+  planeEntity.addComponent(new SheetComponent(planeEntity));
   app.spawn(planeEntity);
 
   try {

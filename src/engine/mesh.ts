@@ -26,21 +26,21 @@ export class Mesh {
 
     const positionsBuffer = device.createBuffer({
       size: positions.length * 4,
-      usage: GPUBufferUsage.VERTEX,
+      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.STORAGE,
       mappedAtCreation: true,
     });
     new Float32Array(positionsBuffer.getMappedRange()).set(positions);
     positionsBuffer.unmap();
     const normalsBuffer = device.createBuffer({
       size: normals.length * 4,
-      usage: GPUBufferUsage.VERTEX,
+      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.STORAGE,
       mappedAtCreation: true,
     });
     new Float32Array(normalsBuffer.getMappedRange()).set(normals);
     normalsBuffer.unmap();
     const uvsBuffer = device.createBuffer({
       size: uvs.length * 4,
-      usage: GPUBufferUsage.VERTEX,
+      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.STORAGE,
       mappedAtCreation: true,
     });
     new Float32Array(uvsBuffer.getMappedRange()).set(uvs);
@@ -60,7 +60,7 @@ export class Mesh {
       throw new RangeError("Subdivs mush be positive");
 
     const vertexCountForSubdivs0 = 6;
-    const vertexCount = vertexCountForSubdivs0 * (4 ** subdivs);
+    const vertexCount = vertexCountForSubdivs0 * ((subdivs+1) ** 2);
 
     const positions = new Float32Array(vertexCount * 3);
     const normals = new Float32Array(vertexCount * 3);
@@ -103,6 +103,7 @@ export class Mesh {
 
       }
     }
+
     return {
       positions,
       normals,
