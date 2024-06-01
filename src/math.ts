@@ -1,6 +1,8 @@
 export { VecN } from "./math/vec";
 export { Color } from "./math/color";
 
+export const G = 6.67430e-11;
+
 export function clamp(val: number, min: number | null, max: number | null): number {
   if (min !== null && val < min)
     return min;

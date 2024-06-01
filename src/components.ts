@@ -1,4 +1,5 @@
 import { Component, Entity } from "./entity";
+import { G } from "./math";
 import { Color } from "./math/color";
 import { Mat3, Mat4 } from "./math/mat";
 import { Vec3 } from "./math/vec";
@@ -7,10 +8,6 @@ import { Mesh } from "./renderer";
 export class TransformComponent extends Component {
   public translation: Vec3 = Vec3.ZERO;
   public affine: Mat3 = Mat3.IDENT;
-
-  public override start(): void {
-      console.log(this);
-  }
 
   public modelToWorld(): Mat4 {
     return Mat4.fromTranslation(this.translation)
@@ -40,6 +37,11 @@ export class TransformComponent extends Component {
 
   public rotateZ(angle: number): this {
     this.affine = this.affine.mul(Mat3.rotateZ(angle));
+    return this;
+  }
+
+  public lookAt(to: Vec3): this {
+    this.affine = Mat3.looking_at(this.translation, to, Vec3.UP);
     return this;
   }
 }
@@ -81,17 +83,53 @@ export class MeshComponent extends Component {
   }
 }
 
-export class RotateComponent extends Component {
+export class MassiveComponent extends Component {
+  public mass: number = 1;
+
+  public withMass(mass: number): this {
+    this.mass = mass;
+    return this;
+  }
+}
+
+export class ParticleComponent extends Component {
+  public velocity: Vec3 = Vec3.ZERO;
+
+  public withVelocity(vel: Vec3): this {
+    this.velocity = vel;
+    return this;
+  }
+
   public override update() {
     super.update();
-    const time = this.application.totalTime;
     const dt = this.application.dt;
 
     const transform = this.entity.components.unwrap_get(TransformComponent);
-    
-    transform.affine = transform.affine.mul(Mat3.rotateY(dt));
-    transform.affine = transform.affine.mul(Mat3.rotateX(dt * Math.sin(time * Math.PI) * 4));
-    transform.affine = transform.affine.mul(Mat3.rotateZ(dt * Math.cos(time * Math.PI) * Math.sin(time) * 8));
+
+    let force = Vec3.ZERO;
+
+    for (const entity of this.application.entities) {
+      if (entity === this.entity)
+        continue;
+      const other_transform = entity.components.get(TransformComponent);
+      if (!other_transform)
+        continue;
+      const other_mass = entity.components.get(MassiveComponent);
+      if (!other_mass)
+        continue;
+      const diff = other_transform.translation
+        .sub(transform.translation);
+      const dist = diff.norm();
+      const dir = diff.div(dist);
+
+      force = force.add(dir.mul((G * other_mass.mass) / (dist ** 2)))
+        .as_vec3();
+    }
+
+    this.velocity = this.velocity.add(force.mul(dt))
+      .as_vec3();
+
+    transform.translate(this.velocity.mul(dt).as_vec3());
   }
 }
 

@@ -6,7 +6,8 @@ import { Color } from "./math/color";
 
 import vertexSource from "./shaders/vertex.glsl";
 import fragmentSource from "./shaders/fragment.glsl";
-import { CameraComponent, LookAroundComponent, MeshComponent, RotateComponent, TransformComponent } from "./components";
+import { CameraComponent, LookAroundComponent, MassiveComponent, MeshComponent, ParticleComponent, TransformComponent } from "./components";
+import { Mat3 } from "./math/mat";
 
 export class Application {
   #defered: (() => void)[] = [];
@@ -41,11 +42,12 @@ export class Application {
     const camera = new Entity(this);
     camera.addComponent(new TransformComponent(camera)
       .rotateX(-0.2)
-      .translate(new Vec3(0, 1, 5))
+      .translate(new Vec3(0, 6, 8))
+      .lookAt(Vec3.ZERO)
     );
     camera.addComponent(new CameraComponent(camera)
       .withClearColor(new Color(0.05, 0.05, 0.05, 1)));
-    camera.addComponent(new LookAroundComponent(camera));
+    // camera.addComponent(new LookAroundComponent(camera));
     this.spawn(camera);
     this.renderer.mainCamera = camera;
 
@@ -74,17 +76,26 @@ export class Application {
       );
     }
 
-    const sphereEntity = new Entity(this);
-    sphereEntity.addComponent(new TransformComponent(sphereEntity));
-    sphereEntity.addComponent(new MeshComponent(sphereEntity, sphereMesh));
-    sphereEntity.addComponent(new RotateComponent(sphereEntity));
-    this.spawn(sphereEntity);
+    for (let angle = 0; angle < Math.PI*2; angle += Math.PI / 4) {
+      const rotate = Mat3.rotateY(angle);
+      const sphereEntity = new Entity(this);
+      sphereEntity.addComponent(new TransformComponent(sphereEntity)
+        .translate(rotate.mul(new Vec3(0,0,3)))
+      );
+      sphereEntity.addComponent(new MeshComponent(sphereEntity, sphereMesh));
+      sphereEntity.addComponent(new ParticleComponent(sphereEntity)
+        .withVelocity(rotate.mul(new Vec3(0.8,0,0)))
+      );
+      sphereEntity.addComponent(new MassiveComponent(sphereEntity)
+        .withMass(10e9));
+      this.spawn(sphereEntity);
+    }
 
     let planeMesh: Mesh;
     {
       console.log("CREATING PLANE");
       console.time("vertices");
-      const vertices = Mesh.planeVertices(0);
+      const vertices = Mesh.planeVertices(8);
       console.timeEnd("vertices");
       console.log("vertex count:", vertices.length);
 
@@ -101,8 +112,7 @@ export class Application {
 
     const planeEntity = new Entity(this);
     planeEntity.addComponent(new TransformComponent(planeEntity)
-      .scale(2)
-      .translate(new Vec3(0, -0.5, 0))
+      .scale(100)
     );
     planeEntity.addComponent(new MeshComponent(planeEntity, planeMesh));
     this.spawn(planeEntity);
