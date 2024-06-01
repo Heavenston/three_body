@@ -40,7 +40,8 @@ export class Application {
   private init() {
     const camera = new Entity(this);
     camera.addComponent(new TransformComponent(camera)
-      .translate(new Vec3(0, 0, 5))
+      .rotateX(-0.2)
+      .translate(new Vec3(0, 1, 5))
     );
     camera.addComponent(new CameraComponent(camera)
       .withClearColor(new Color(0.05, 0.05, 0.05, 1)));

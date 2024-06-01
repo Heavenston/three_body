@@ -98,14 +98,11 @@ export class RotateComponent extends Component {
 export class LookAroundComponent extends Component {
   public override update() {
     super.update();
-    const time = this.application.totalTime;
+    const dt = this.application.dt;
 
     const transform = this.entity.components.unwrap_get(TransformComponent);
-
-    const angle = time;
     
-    transform.translation = Mat3.rotateY(angle)
-      .mul(new Vec3(0,0,5));
-    transform.affine = Mat3.rotateY(-angle);
+    transform.translation = Mat3.rotateY(dt).mul(transform.translation);
+    transform.affine = Mat3.looking_at(transform.translation, Vec3.ZERO, Vec3.UP);
   }
 }

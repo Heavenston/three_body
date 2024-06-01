@@ -54,6 +54,18 @@ export class Mat3 {
     );
   }
 
+  public static looking_at(from: Vec3, to: Vec3, up: Vec3): Mat3 {
+    const forward = to.sub(from).normalize().as_vec3();
+    const right = forward.cross(up).normalize().as_vec3();
+    const newUp = right.cross(forward).normalize().as_vec3();
+
+    return new Mat3(
+      right.x, newUp.x, -forward.x,
+      right.y, newUp.y, -forward.y,
+      right.z, newUp.z, -forward.z
+    );
+  }
+
   public get(row: number, col: number): number {
     if (row >= 3 || col >= 3 || row < 0 || col < 0)
       throw new RangeError("out of bound get");

@@ -164,6 +164,10 @@ export class VecN {
     return Math.sqrt(this.norm2());
   }
 
+  public normalize(): VecN {
+    return this.div(this.norm());
+  }
+  
   public clamp(min: VecN | null, max: VecN | null): VecN {
     if (min !== null && this.dims !== min.dims)
       throw new InvalidDimensionsError(this, min);
@@ -248,6 +252,7 @@ export class Vec3 extends VecN {
   }
 
   public static ZERO = Vec3.splat(0);
+  public static UP = new Vec3(0,1,0);
 
   public get x(): number {
     return this.vals[0];
@@ -259,6 +264,14 @@ export class Vec3 extends VecN {
 
   public get z(): number {
     return this.vals[2];
+  }
+
+  public cross(other: Vec3): Vec3 {
+    return new Vec3(
+      this.y * other.z - this.z * other.y,
+      this.z * other.x - this.x * other.z,
+      this.x * other.y - this.y * other.x
+    );
   }
 }
 
