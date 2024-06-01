@@ -63,6 +63,7 @@ export class RotateComponent extends Component {
 
     const transform = this.entity.components.unwrap_get(TransformComponent);
     
-    transform.affine = transform.affine.mul(Mat3.rotateX(dt));
+    transform.affine = transform.affine.mul(Mat3.rotateY(dt));
+    transform.affine = transform.affine.mul(Mat3.rotateX(dt * 2));
   }
 }
