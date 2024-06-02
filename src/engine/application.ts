@@ -63,7 +63,7 @@ export class Application {
     const resizeCanvas = () => {
       this.canvas.width = document.body.clientWidth;
       this.canvas.height = document.body.clientHeight;
-      frame(lastT);
+      frame(lastT*1000);
     };
 
     resizeCanvas();

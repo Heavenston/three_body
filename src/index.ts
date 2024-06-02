@@ -86,10 +86,18 @@ export class SheetComponent extends Component {
   public mesh: Mesh;
 
   public uniform: GPUBuffer;
-  public pipeline: GPUComputePipeline;
-  public bindgroup: GPUBindGroup;
+  public particlesBuffer: GPUBuffer;
+  public particlesArray: Float32Array;
+  
+  public pressPipeline: GPUComputePipeline;
+  public pressBindgroup: GPUBindGroup;
+
+  public displacePipeline: GPUComputePipeline;
+  public displaceBindgroup: GPUBindGroup;
 
   public heightmap: GPUTexture;
+
+  private readonly particleDataSize: number = 4 * 4;
 
   constructor(
     entity: Entity,
@@ -105,16 +113,45 @@ export class SheetComponent extends Component {
 
     this.uniform = device.createBuffer({
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-      size: 4,
+      size: 8,
     });
 
     this.heightmap = device.createTexture({
       format: "r32float",
-      size: [200,200],
+      size: [2000,2000],
       usage: GPUTextureUsage.STORAGE_BINDING,
     });
 
-    this.pipeline = device.createComputePipeline({
+    const particleCapacity = 100;
+    this.particlesArray = new Float32Array(particleCapacity * (this.particleDataSize / 4));
+    this.particlesBuffer = device.createBuffer({
+      size: this.particleDataSize * particleCapacity,
+      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE,
+    });
+
+    this.pressPipeline = device.createComputePipeline({
+      layout: "auto",
+      label: "sheet press compute pipeline",
+      compute: {
+        module: shaderModule,
+        entryPoint: "press",
+      }
+    });
+
+    this.pressBindgroup = device.createBindGroup({
+      layout: this.pressPipeline.getBindGroupLayout(0),
+      label: "sheet bind group",
+      entries: [
+        // { binding: 0, resource: { buffer: this.mesh.positionsBuffer } },
+        // { binding: 1, resource: { buffer: this.mesh.normalsBuffer } },
+        // { binding: 2, resource: { buffer: this.mesh.uvsBuffer } },
+        { binding: 3, resource: { buffer: this.uniform } },
+        { binding: 4, resource: this.heightmap.createView() },
+        { binding: 5, resource: { buffer: this.particlesBuffer } },
+      ],
+    });
+
+    this.displacePipeline = device.createComputePipeline({
       layout: "auto",
       label: "sheet displace compute pipeline",
       compute: {
@@ -123,8 +160,8 @@ export class SheetComponent extends Component {
       }
     });
 
-    this.bindgroup = device.createBindGroup({
-      layout: this.pipeline.getBindGroupLayout(0),
+    this.displaceBindgroup = device.createBindGroup({
+      layout: this.displacePipeline.getBindGroupLayout(0),
       label: "sheet bind group",
       entries: [
         { binding: 0, resource: { buffer: this.mesh.positionsBuffer } },
@@ -139,17 +176,39 @@ export class SheetComponent extends Component {
   public override update(): void {
     const device = this.renderer.device;
 
+    let particleCount = 0;
+    for (const entity of this.application.entities) {
+      const particle = entity.components.get(ParticleComponent);
+      if (!particle)
+        continue;
+      const transform = entity.components.unwrap_get(TransformComponent);
+      this.particlesArray.set(
+        [...transform.translation.vals],
+        particleCount * (this.particleDataSize/4),
+      );
+      particleCount += 1;
+    }
+
+    device.queue.writeBuffer(this.particlesBuffer, 0, this.particlesArray);
+
     device.queue.writeBuffer(this.uniform, 0, new Float32Array([
       this.application.totalTime,
+    ]));
+    device.queue.writeBuffer(this.uniform, 4, new Uint32Array([
+      particleCount,
     ]));
 
     const commandEncoder = device.createCommandEncoder();
     const passEncoder = commandEncoder.beginComputePass();
 
+    passEncoder.setPipeline(this.pressPipeline);
+    passEncoder.setBindGroup(0, this.pressBindgroup);
+    passEncoder.dispatchWorkgroups(this.heightmap.width, this.heightmap.height, 1);
+
     const count = this.mesh.positionsBuffer.size / (4 * 3);
 
-    passEncoder.setPipeline(this.pipeline);
-    passEncoder.setBindGroup(0, this.bindgroup);
+    passEncoder.setPipeline(this.displacePipeline);
+    passEncoder.setBindGroup(0, this.displaceBindgroup);
     passEncoder.dispatchWorkgroups((count / 3) / 64, 1, 1);
 
     passEncoder.end();

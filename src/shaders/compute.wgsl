@@ -1,5 +1,10 @@
 struct Uniforms {
     totalTime: f32,
+    particleCount: u32,
+}
+
+struct Particle {
+    position: vec3f,
 }
 
 @group(0) @binding(0) var<storage, read_write> positions: array<f32>;
@@ -7,6 +12,7 @@ struct Uniforms {
 @group(0) @binding(2) var<storage, read_write> uvs: array<f32>;
 @group(0) @binding(3) var<uniform> uniforms: Uniforms;
 @group(0) @binding(4) var heightMap: texture_storage_2d<r32float, read_write>;
+@group(0) @binding(5) var<storage, read> particles: array<Particle>;
 
 fn getPos(i: u32) -> vec3f {
     return vec3f(positions[i*3], positions[i*3+1], positions[i*3+2]);
@@ -74,13 +80,38 @@ fn displace_vertex(
 }
 
 fn press_pixel(
-    pos: vec3<u32>
+    pos: vec2<u32>
 ) {
-    
+    let dims = textureDimensions(heightMap);
+    if (pos.x > dims.x || pos.y > dims.y) {
+        return;
+    }
+
+    let position = vec2f(
+        (f32(pos.x) / f32(dims.x)) * 40. - 20.,
+        (f32(pos.y) / f32(dims.y)) * 40. - 20.
+    );
+
+    var min = 9999999.;
+    for (var i: u32 = 0; i < uniforms.particleCount; i++) {
+        let dist = length(particles[i].position.xz - position);
+        if (dist < min) {
+            min = dist;
+        }
+    }
+
+    if (min < 0.5) {
+        textureStore(heightMap, pos, vec4f(0.3));
+    }
+    else {
+        textureStore(heightMap, pos, vec4f(0.));
+    }
+
 }
 
 // Make particles make an indent on the texture
-@compute @workgroup_size(64) fn press(
+@compute @workgroup_size(1) fn press(
     @builtin(global_invocation_id) global_invocation_id : vec3<u32>,
 ) {
+    press_pixel(global_invocation_id.xy);
 }

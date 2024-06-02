@@ -38,5 +38,5 @@ fn vertex(
  
 @fragment
 fn fragment(v: VertexOut) -> @location(0) vec4f {
-    return v.color;
+    return vec4f((v.normal + 1.) / 2., 1.);
 }
