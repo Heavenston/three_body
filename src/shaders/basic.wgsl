@@ -38,5 +38,9 @@ fn vertex(
  
 @fragment
 fn fragment(v: VertexOut) -> @location(0) vec4f {
+    // let to_light = normalize(v.worldPos.xyz - vec3f(0.));
+    // let lighting = dot(to_light, v.normal);
+    // return v.color * lighting;
+    // return v.color;
     return vec4f((v.normal + 1.) / 2., 1.);
 }

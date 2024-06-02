@@ -92,21 +92,30 @@ fn press_pixel(
         (f32(pos.y) / f32(dims.y)) * 40. - 20.
     );
 
-    var min = 9999999.;
+    var closest = 9999999.;
     for (var i: u32 = 0; i < uniforms.particleCount; i++) {
         let dist = length(particles[i].position.xz - position);
-        if (dist < min) {
-            min = dist;
+        if (dist < closest) {
+            closest = dist;
         }
     }
 
-    if (min < 0.5) {
-        textureStore(heightMap, pos, vec4f(0.3));
+    let dist = closest - 0.5;
+
+    var height = 0.;
+    if (dist < 0.) {
+        height = -1.;
     }
     else {
-        textureStore(heightMap, pos, vec4f(0.));
+        height = dist;
     }
 
+    height = clamp(height, -1., 0.);
+
+    let previousHeight = textureLoad(heightMap, pos).x;
+    height = min(height, previousHeight);
+
+    textureStore(heightMap, pos, vec4f(height));
 }
 
 // Make particles make an indent on the texture

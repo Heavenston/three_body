@@ -118,7 +118,7 @@ export class SheetComponent extends Component {
 
     this.heightmap = device.createTexture({
       format: "r32float",
-      size: [2000,2000],
+      size: [200,200],
       usage: GPUTextureUsage.STORAGE_BINDING,
     });
 
