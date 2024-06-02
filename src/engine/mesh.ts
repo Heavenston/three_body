@@ -65,21 +65,21 @@ export class Mesh {
     let positionPointer = 0;
     let normalPointer = 0;
     let uvPointer = 0;
-    function pushVertex(vec: Vec3, uv: Vec2) {
-      positions[positionPointer++] = vec.x;
-      positions[positionPointer++] = vec.y;
-      positions[positionPointer++] = vec.z;
+    function pushVertex(x: number, y: number, z: number, u: number, v: number) {
+      positions[positionPointer++] = x;
+      positions[positionPointer++] = y;
+      positions[positionPointer++] = z;
       normals[normalPointer++] = 0;
       normals[normalPointer++] = 0;
       normals[normalPointer++] = 0;
-      uvs[uvPointer++] = uv.u;
-      uvs[uvPointer++] = uv.v;
+      uvs[uvPointer++] = u;
+      uvs[uvPointer++] = v;
     }
 
     const sideValues = [
       [0,1], [1,0], [0,0],
       [1,0], [0,1], [1,1],
-    ].map(arr => new Vec2(arr[0], arr[1]));
+    ];
     function swap() {
       [sideValues[0], sideValues[2]] = [sideValues[2], sideValues[0]];
       [sideValues[3], sideValues[5]] = [sideValues[5], sideValues[3]];
@@ -89,12 +89,15 @@ export class Mesh {
     for (let subdivX = 0; subdivX <= subdivs; subdivX++) {
       for (let subdivY = 0; subdivY <= subdivs; subdivY++) {
         for (const sv of sideValues){
-          const pos = sv.add(subdivX, subdivY).div(subdivs+1)
-            .sub(0.5)
-            .addAxis(1, 0)
-            .mul(size)
-            .as_vec3();
-          pushVertex(pos, sv.add(subdivX, subdivY).div(subdivs+1).as_vec2());
+          const rx = (sv[0] + subdivX) / (subdivs + 1);
+          const ry = (sv[1] + subdivY) / (subdivs + 1);
+          pushVertex(
+            (rx - 0.5) * size,
+            0.,
+            (ry - 0.5) * size,
+
+            rx, ry,
+          );
         }
 
       }
@@ -123,22 +126,22 @@ export class Mesh {
     let positionPointer = 0;
     let normalPointer = 0;
     let uvPointer = 0;
-    function pushVertex(vec: Vec3, uv: Vec2) {
-      positions[positionPointer++] = vec.x;
-      positions[positionPointer++] = vec.y;
-      positions[positionPointer++] = vec.z;
+    function pushVertex(x: number, y: number, z: number, u: number, v: number) {
+      positions[positionPointer++] = x;
+      positions[positionPointer++] = y;
+      positions[positionPointer++] = z;
       normals[normalPointer++] = 0;
       normals[normalPointer++] = 0;
       normals[normalPointer++] = 0;
-      uvs[uvPointer++] = uv.u;
-      uvs[uvPointer++] = uv.v;
+      uvs[uvPointer++] = u;
+      uvs[uvPointer++] = v;
     }
 
     for (let axis = 0; axis < 3; axis++) {
       const sideValues = [
         [0,1], [1,0], [0,0],
         [1,0], [0,1], [1,1],
-      ].map(arr => new Vec2(arr[0], arr[1]));
+      ];
       function swap() {
         [sideValues[0], sideValues[2]] = [sideValues[2], sideValues[0]];
         [sideValues[3], sideValues[5]] = [sideValues[5], sideValues[3]];
@@ -152,15 +155,37 @@ export class Mesh {
         }
         for (let subdivX = 0; subdivX <= subdivs; subdivX++) {
           for (let subdivY = 0; subdivY <= subdivs; subdivY++) {
-
             for (const sv of sideValues){
-              const pos = sv.add(subdivX, subdivY).div(subdivs+1)
-                .addAxis(axis, thirdAxisVal)
-                .sub(0.5)
-                .as_vec3();
-              pushVertex(pos, sv.add(subdivX, subdivY).div(subdivs+1).as_vec2());
-            }
+              const rx = (sv[0] + subdivX) / (subdivs + 1);
+              const ry = (sv[1] + subdivY) / (subdivs + 1);
+              if (axis === 0) {
+                pushVertex(
+                  thirdAxisVal - 0.5,
+                  rx - 0.5,
+                  ry - 0.5,
 
+                  rx, ry,
+                );
+              }
+              if (axis === 1) {
+                pushVertex(
+                  rx - 0.5,
+                  thirdAxisVal - 0.5,
+                  ry - 0.5,
+
+                  rx, ry,
+                );
+              }
+              if (axis === 2) {
+                pushVertex(
+                  rx - 0.5,
+                  ry - 0.5,
+                  thirdAxisVal - 0.5,
+
+                  rx, ry,
+                );
+              }
+            }
           }
         }
       }
