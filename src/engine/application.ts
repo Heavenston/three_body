@@ -42,12 +42,14 @@ export class Application {
     let onError: ((e: unknown) => void) | null = null;
     const promise = new Promise((_res, rej) => {onError = rej;});
 
-    let lastT = 0;
+    let lastT: number | null = null;
     let animationFrame: number | null = null;
     const frame = (time: number) => {
       try {
         time /= 1000;
 
+        if (!lastT)
+          lastT = time;
         this.update(clamp(time - lastT, 0, 0.5));
         lastT = time;
 
@@ -63,7 +65,11 @@ export class Application {
     const resizeCanvas = () => {
       this.canvas.width = document.body.clientWidth;
       this.canvas.height = document.body.clientHeight;
-      frame(lastT*1000);
+      if (lastT)
+        frame(lastT*1000);
+      else {
+        requestAnimationFrame(frame);
+      }
     };
 
     resizeCanvas();

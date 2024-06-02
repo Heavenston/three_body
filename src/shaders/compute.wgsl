@@ -1,5 +1,9 @@
 const PI = radians(180.0);
 
+fn lerp(fr: f32, to: f32, t: f32) -> f32 {
+    return fr * (1. - t) + to * t;
+}
+
 struct Uniforms {
     totalTime: f32,
     planeSize: f32,
@@ -51,7 +55,6 @@ fn displace_vertex(
 ) {
     for (var di: u32 = 0; di < 3; di += 1) {
         var pos = getPos(i+di);
-        // pos.y = sin(pos.x + uniforms.totalTime * 2) * cos(pos.z * 0.5 + uniforms.totalTime);
         pos.y = sampleHeight(getUv(i+di));
         setPos(i+di, pos);
     }
@@ -103,24 +106,76 @@ fn press_pixel(
 
         var height = 0.;
         if (dist > radius) {
-            height = 0.;
+            height = 99999.;
         }
         else {
             height = -sqrt((radius * radius) - (dist * dist));
         }
-
-        height = clamp(height, -1., 0.);
+        height = min(height, 0.5);
 
         let previousHeight = textureLoad(heightMap, pos).x;
         height = min(height, previousHeight);
-
         textureStore(heightMap, pos, vec4f(height));
     }
-    }
+}
 
 // Make particles make an indent on the texture
 @compute @workgroup_size(1,1,1) fn press(
     @builtin(global_invocation_id) global_invocation_id : vec3<u32>,
 ) {
     press_pixel(global_invocation_id.xy);
+}
+
+fn get_pixel_i32(
+    pos: vec2<i32>,
+    counted: ptr<function, bool>,
+) -> f32 {
+    let dims = textureDimensions(heightMap);
+    if (pos.x < 0 || pos.y < 0 || pos.x > i32(dims.x) || pos.y > i32(dims.y)) {
+        *counted = false;
+        return 0.;
+    }
+    *counted = true;
+
+    return textureLoad(heightMap, vec2u(pos)).x;
+}
+
+fn post_pixel(
+    pos: vec2<u32>
+) {
+    let dims = textureDimensions(heightMap);
+    if (pos.x > dims.x || pos.y > dims.y) {
+        return;
+    }
+
+    var sum: f32 = 0.;
+    var count: f32 = 0.;
+
+    for (var dx: i32 = -1; dx <= 1; dx += 1) {
+        for (var dy: i32 = -1; dy <= 1; dy += 1) {
+            var counted: bool = false;
+            var val = 1.;
+            if dx == 0 {
+                val += 0.5;
+            }
+            if dy == 0 {
+                val += 0.5;
+            }
+            sum += get_pixel_i32(vec2i(pos) + vec2(dx, dy), &counted) * val;
+            if counted {
+                count += val;
+            }
+        }
+    }
+
+    let val = sum / count + 0.001;
+
+    textureStore(heightMap, pos, vec4f(val));
+}
+
+// Make particles make an indent on the texture
+@compute @workgroup_size(1,1,1) fn post(
+    @builtin(global_invocation_id) global_invocation_id : vec3<u32>,
+) {
+    post_pixel(global_invocation_id.xy);
 }
