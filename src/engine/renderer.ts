@@ -139,7 +139,7 @@ export class Renderer {
     const commandEncoder = device.createCommandEncoder();
     const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
 
-    function render(entity: Entity, worldTransform: Mat4) {
+    function render(entity: Entity, worldTransform: Mat4 | null) {
       const meshComp = entity.components.get(MeshComponent);
       if (!meshComp)
         return;
@@ -150,7 +150,9 @@ export class Renderer {
       if (!transform)
         return;
 
-      const modelMatrix = worldTransform.mul(transform.modelToWorld());
+      const modelMatrix = worldTransform === null
+        ? transform.modelToWorld()
+        : worldTransform.mul(transform.modelToWorld());
 
       device.queue.writeBuffer(meshComp.uniformBuffer, 0, new Float32Array([
         ...modelMatrix.transpose().vals,
@@ -169,18 +171,20 @@ export class Renderer {
       const vc = mesh.positionsBuffer.size / (3*4);
       passEncoder.draw(vc);
     }
-    function renderRec(entity: Entity, worldTransform: Mat4) {
+    function renderRec(entity: Entity, worldTransform: Mat4 | null) {
       render(entity, worldTransform);
       const transform = entity.components.get(TransformComponent);
       if (transform) {
-        worldTransform = worldTransform.mul(transform.modelToWorld());
+        worldTransform = worldTransform 
+          ? worldTransform.mul(transform.modelToWorld())
+          : transform.modelToWorld();
       }
       for (const child of entity.children) {
         renderRec(child, worldTransform);
       }
     }
     for (const entity of this.application.entities) {
-      renderRec(entity, Mat4.IDENT);
+      renderRec(entity, null);
     }
 
     passEncoder.end();
