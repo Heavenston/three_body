@@ -52,7 +52,8 @@ export class Application {
 
         if (animationFrame != null)
           cancelAnimationFrame(animationFrame);
-        animationFrame = requestAnimationFrame(frame);
+        if (!(window as any).stopNow)
+          animationFrame = requestAnimationFrame(frame);
       }
       catch(e) {
         onError?.(e);

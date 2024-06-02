@@ -7,6 +7,7 @@ import { Color } from "./math/color";
 
 import shaderSource from "bundle-text:./shaders/basic.wgsl";
 import computeShaderSource from "bundle-text:./shaders/compute.wgsl";
+import sheetBallsShaderSource from "bundle-text:./shaders/basic.wgsl";
 import { Mat3 } from "./math/mat";
 import { G, clamp } from "./math";
 import { Material } from "./material";
@@ -97,6 +98,8 @@ export class LookAroundComponent extends Component {
 export class SheetComponent extends Component {
   public readonly renderer: Renderer;
   public mesh: Mesh;
+
+  public ballMaterial: Material;
 
   public uniform: GPUBuffer;
   public particlesBuffer: GPUBuffer;
@@ -254,6 +257,8 @@ export class SheetComponent extends Component {
         { binding: 7, resource: this.heightmapSampler },
       ],
     });
+
+    this.ballMaterial = Material.fromSource(this.renderer, sheetBallsShaderSource);
   }
 
   public override update(): void {
@@ -398,8 +403,7 @@ const run = async () => {
     );
 
     const radius = 0.5;
-    // const n = 150;
-    const n = 0;
+    const n = 150;
 
     // Function to convert spherical coordinates to Cartesian coordinates
     const sphericalToCartesian = (r: number, theta: number, phi: number) => {
@@ -448,8 +452,8 @@ const run = async () => {
   //   .withMass(10e10 + 10e9));
   // app.spawn(pointMass);
 
-  const planeSize = 40;
-  const planeSubdivs = 800;
+  const planeSize = 20;
+  const planeSubdivs = 400;
 
   let planeMesh: Mesh;
   {
@@ -473,9 +477,25 @@ const run = async () => {
   planeEntity.addComponent(new TransformComponent(planeEntity));
   planeEntity.addComponent(new RenderComponent(planeEntity, planeMesh, material)
     .withColor(new Color(0.1,0.1,0.1,1.)));
-  planeEntity.addComponent(new SheetComponent(planeEntity, planeSize, planeSubdivs));
-  app.spawn(planeEntity);
+  const sheetComp = new SheetComponent(planeEntity, planeSize, planeSubdivs);
+  planeEntity.addComponent(sheetComp);
 
+  const ballSep = 0.25;
+  for (let x = -planeSize/2; x < planeSize/2; x += ballSep) {
+    for (let y = -planeSize/2; y < planeSize/2; y += ballSep) {
+      const smallBallPos = new Vec3(x, 0, y);
+
+      const smallBall = new Entity(app);
+      smallBall.addComponent(new TransformComponent(smallBall)
+        .translate(smallBallPos));
+      smallBall.addComponent(new RenderComponent(smallBall, smallSphereMesh, sheetComp.ballMaterial)
+        .withColor(Color.WHITE));
+
+      planeEntity.children.add(smallBall);
+    }
+  }
+
+  app.spawn(planeEntity);
   await app.start();
 };
 
