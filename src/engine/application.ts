@@ -81,16 +81,27 @@ export class Application {
       throw new Error("entity already spawned");
 
     this.#entities.add(entity);
-    entity.spawned();
+    entity.onSpawn();
   }
 
   public despawn(entity: Entity) {
     if (this.#entities.delete(entity))
-      entity.despawned();
+      entity.onDespawn();
   }
 
   private updateStatusBar() {
-    const text = `FPS: ${Math.round((1 / this.dt) * 10) / 10}`;
+    let entityCount = 0;
+    const count = (e: Entity) => {
+      entityCount++;
+      e.children.forEach(count);
+    };
+    this.#entities.forEach(count);
+
+    const text = `
+      FPS: ${Math.round((1 / this.dt) * 10) / 10}
+      Entity count: ${entityCount}
+      Draw calls: ${this.renderer.drawCallCount()}
+    `.trim();
     if (this.statusBar.innerText !== text)
       this.statusBar.innerText = text;
   }

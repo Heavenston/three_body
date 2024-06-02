@@ -63,15 +63,28 @@ export class ComponentMap {
 export class Entity {
   #spawned: boolean = false;
   #components = new ComponentMap();
+  #children: Set<Entity> = new Set();
+  #parent: Entity | null = null;
 
   public get components(): Readonly<ComponentMap> {
     return this.#components;
   }
 
-  public children: Set<Entity> = new Set();
+  public get children(): Readonly<Set<Entity>> {
+    return this.#children;
+  }
 
-  constructor(public readonly application: Application) {
-    
+  public get parent(): Entity | null {
+    return this.#parent;
+  }
+
+  constructor(
+    public readonly application: Application,
+    parent: Entity | null = null,
+  ) {
+    if (parent)
+      parent.children.add(this);
+    this.#parent = parent;
   }
 
   public addComponent(comp: Component) {
@@ -95,25 +108,67 @@ export class Entity {
     return this.#spawned;
   }
 
-  public spawned(): void {
+  private checkForCycles(found: Set<Entity> = new Set()) {
+    found = new Set([...found, this]);
+    for (const child of this.#children) {
+      if (found.has(child)) {
+        throw new Error("Invalid scene graph (cycle detected)");
+      }
+      if (child.parent !== this) {
+        throw new Error("Not parent of child");
+      }
+      child.checkForCycles(found);
+    }
+  }
+
+  public addChild(child: Entity) {
+    if (this.#children.has(child))
+      return;
+
+    if (child.parent)
+      throw new Error("Child already has a parent");
+    if (child.isSpawned)
+      throw new Error("Child cannot be spawned before adding");
+
+    this.#children.add(child);
+    child.#parent = this;
+
+    this.checkForCycles();
+
+    if (this.isSpawned)
+      child.onSpawn();
+  }
+
+  public removeChild(child: Entity) {
+    if (!this.#children.has(child))
+      return;
+
+    this.#children.delete(child);
+    child.#parent = null;
+
+    if (child.isSpawned)
+      child.onDespawn();
+  }
+
+  public onSpawn(): void {
     this.#spawned = true;
 
     for (const comp of this.components.values())
       comp.start();
 
     for (const child of this.children) {
-      child.spawned();
+      child.onSpawn();
     }
   }
 
-  public despawned(): void {
+  public onDespawn(): void {
     this.#spawned = false;
 
     for (const comp of this.components.values())
       comp.stop();
 
     for (const child of this.children) {
-      child.despawned();
+      child.onDespawn();
     }
   }
 

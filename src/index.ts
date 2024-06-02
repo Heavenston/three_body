@@ -145,7 +145,7 @@ export class SheetComponent extends Component {
   }
 }
 
-(async () => {
+const run = async () => {
   const canvas = document.getElementById("canvas");
   if (!canvas || !(canvas instanceof HTMLCanvasElement))
     throw new Error("no");
@@ -298,16 +298,24 @@ export class SheetComponent extends Component {
   planeEntity.addComponent(new SheetComponent(planeEntity));
   app.spawn(planeEntity);
 
+  await app.start();
+};
+
+(async () => {
   try {
-    await app.start();
+    await run();
   }
   catch(e) {
     console.error(e);
+    document.body.innerHTML = `<div class="error"></div>`
+    const el = document.createElement("div");
     if (e instanceof UserError) {
-      alert("User error !: " + e.message);
+      el.innerText = `User Error ! : ${e.message}`;
     }
     else if (e instanceof Error) {
-      alert("Just error !: " + e.message);
+      el.innerText = `${e.name} ! : ${e.message}`;
     }
+    document.body.textContent = "";
+    document.body.appendChild(el);
   }
 })();
