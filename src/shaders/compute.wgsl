@@ -1,10 +1,14 @@
+const PI = radians(180.0);
+
 struct Uniforms {
     totalTime: f32,
+    planeSize: f32,
     particleCount: u32,
 }
 
 struct Particle {
     position: vec3f,
+    radius: f32,
 }
 
 @group(0) @binding(0) var<storage, read_write> positions: array<f32>;
@@ -88,38 +92,34 @@ fn press_pixel(
     }
 
     let position = vec2f(
-        (f32(pos.x) / f32(dims.x)) * 40. - 20.,
-        (f32(pos.y) / f32(dims.y)) * 40. - 20.
+        (f32(pos.x) / f32(dims.x)) * uniforms.planeSize - uniforms.planeSize/2.,
+        (f32(pos.y) / f32(dims.y)) * uniforms.planeSize - uniforms.planeSize/2.
     );
 
-    var closest = 9999999.;
     for (var i: u32 = 0; i < uniforms.particleCount; i++) {
         let dist = length(particles[i].position.xz - position);
-        if (dist < closest) {
-            closest = dist;
+
+        let radius = particles[i].radius;
+
+        var height = 0.;
+        if (dist > radius) {
+            height = 0.;
         }
+        else {
+            height = -sqrt((radius * radius) - (dist * dist));
+        }
+
+        height = clamp(height, -1., 0.);
+
+        let previousHeight = textureLoad(heightMap, pos).x;
+        height = min(height, previousHeight);
+
+        textureStore(heightMap, pos, vec4f(height));
     }
-
-    let dist = closest - 0.5;
-
-    var height = 0.;
-    if (dist < 0.) {
-        height = -1.;
     }
-    else {
-        height = dist;
-    }
-
-    height = clamp(height, -1., 0.);
-
-    let previousHeight = textureLoad(heightMap, pos).x;
-    height = min(height, previousHeight);
-
-    textureStore(heightMap, pos, vec4f(height));
-}
 
 // Make particles make an indent on the texture
-@compute @workgroup_size(1) fn press(
+@compute @workgroup_size(1,1,1) fn press(
     @builtin(global_invocation_id) global_invocation_id : vec3<u32>,
 ) {
     press_pixel(global_invocation_id.xy);

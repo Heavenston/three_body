@@ -2,7 +2,7 @@ import { Application } from "~/src/engine/application";
 import { UserError } from "~/src/engine/usererror";
 import { Component, Entity } from "./engine/entity";
 import { CameraComponent, RenderComponent, TransformComponent } from "./engine/components";
-import { Vec3 } from "./math/vec";
+import { Vec2, Vec3 } from "./math/vec";
 import { Color } from "./math/color";
 
 import shaderSource from "bundle-text:./shaders/basic.wgsl";
@@ -101,6 +101,8 @@ export class SheetComponent extends Component {
 
   constructor(
     entity: Entity,
+    public readonly planeSize: number,
+    public readonly planeSubdivs: number,
   ) {
     super(entity);
     this.mesh = entity.components.unwrap_get(RenderComponent).mesh;
@@ -113,12 +115,12 @@ export class SheetComponent extends Component {
 
     this.uniform = device.createBuffer({
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-      size: 8,
+      size: 12,
     });
 
     this.heightmap = device.createTexture({
       format: "r32float",
-      size: [200,200],
+      size: [planeSubdivs,planeSubdivs],
       usage: GPUTextureUsage.STORAGE_BINDING,
     });
 
@@ -183,7 +185,7 @@ export class SheetComponent extends Component {
         continue;
       const transform = entity.components.unwrap_get(TransformComponent);
       this.particlesArray.set(
-        [...transform.translation.vals],
+        [...transform.translation.vals, particle.radius],
         particleCount * (this.particleDataSize/4),
       );
       particleCount += 1;
@@ -193,8 +195,9 @@ export class SheetComponent extends Component {
 
     device.queue.writeBuffer(this.uniform, 0, new Float32Array([
       this.application.totalTime,
+      this.planeSize,
     ]));
-    device.queue.writeBuffer(this.uniform, 4, new Uint32Array([
+    device.queue.writeBuffer(this.uniform, 8, new Uint32Array([
       particleCount,
     ]));
 
@@ -225,7 +228,7 @@ const run = async () => {
   const camera = new Entity(app);
   camera.addComponent(new TransformComponent(camera)
     .rotateX(-0.2)
-    .translate(new Vec3(0, 9, 13))
+    .translate(new Vec3(0, 8, 10))
     .lookAt(Vec3.ZERO)
   );
   camera.addComponent(new CameraComponent(camera)
@@ -345,11 +348,14 @@ const run = async () => {
     .withMass(10e10 + 10e9));
   app.spawn(pointMass);
 
+  const planeSize = 20;
+  const planeSubdivs = 400;
+
   let planeMesh: Mesh;
   {
     console.log("CREATING PLANE");
     console.time("vertices");
-    const vertices = Mesh.planeVertices(200, 40);
+    const vertices = Mesh.planeVertices(planeSubdivs, planeSize);
     console.timeEnd("vertices");
     console.log("vertex count:", vertices.positions.length / 3);
 
@@ -367,7 +373,7 @@ const run = async () => {
   planeEntity.addComponent(new TransformComponent(planeEntity));
   planeEntity.addComponent(new RenderComponent(planeEntity, planeMesh, material)
     .withColor(new Color(0.1,0.1,0.1,1.)));
-  planeEntity.addComponent(new SheetComponent(planeEntity));
+  planeEntity.addComponent(new SheetComponent(planeEntity, planeSize, planeSubdivs));
   app.spawn(planeEntity);
 
   await app.start();
