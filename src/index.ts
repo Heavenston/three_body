@@ -394,6 +394,10 @@ const run = async () => {
     );
   }
 
+  const ballMass = 70;
+  const ballDistance = 4;
+  const ballSpeed = 2;
+
   const spawnBall = (
     pos: Vec3,
     velocity: Vec3,
@@ -409,7 +413,7 @@ const run = async () => {
       .withVelocity(velocity)
     );
     sphereEntity.addComponent(new MassiveComponent(sphereEntity)
-      .withMass(12)
+      .withMass(ballMass)
     );
 
     const radius = 0.5;
@@ -448,7 +452,7 @@ const run = async () => {
   const ballCount = 3;
   for (let balli = 0; balli < ballCount; balli++) {
     const rotate = Mat3.rotateY((balli / ballCount) * Math.PI * 2);
-    spawnBall(rotate.mul(new Vec3(0,0,3)), rotate.mul(new Vec3(1.1,0,0)));
+    spawnBall(rotate.mul(new Vec3(0,0,ballDistance)), rotate.mul(new Vec3(ballSpeed,0,0)));
   }
   // spawnBall(new Vec3(-5, 0, 0), new Vec3(1,0,0));
   // spawnBall(new Vec3(5, 0, 0), new Vec3(-1,0,0));
