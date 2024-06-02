@@ -210,7 +210,7 @@ export class SheetComponent extends Component {
         // { binding: 0, resource: { buffer: this.mesh.positionsBuffer } },
         // { binding: 1, resource: { buffer: this.mesh.normalsBuffer } },
         // { binding: 2, resource: { buffer: this.mesh.uvsBuffer } },
-        // { binding: 3, resource: { buffer: this.uniform } },
+        { binding: 3, resource: { buffer: this.uniform } },
         { binding: 4, resource: this.heightmapPost.createView() },
         { binding: 5, resource: this.heightmapPre.createView() },
         // { binding: 6, resource: { buffer: this.particlesBuffer } },
@@ -285,7 +285,7 @@ export class SheetComponent extends Component {
 
     passEncoder.setPipeline(this.pressPipeline);
     passEncoder.setBindGroup(0, this.pressBindgroup);
-    passEncoder.dispatchWorkgroups(this.heightmapPre.width, this.heightmapPre.height, 1);
+    passEncoder.dispatchWorkgroups(this.heightmapPre.width/16, this.heightmapPre.height/16, 1);
 
     passEncoder.setPipeline(this.postPipeline);
     passEncoder.setBindGroup(0, this.postBindgroup);
@@ -431,8 +431,8 @@ const run = async () => {
     .withMass(10e10 + 10e9));
   app.spawn(pointMass);
 
-  const planeSize = 20;
-  const planeSubdivs = 400;
+  const planeSize = 40;
+  const planeSubdivs = 800;
 
   let planeMesh: Mesh;
   {

@@ -123,7 +123,7 @@ fn press_pixel(
 }
 
 // Make particles make an indent on the texture
-@compute @workgroup_size(1,1,1) fn press(
+@compute @workgroup_size(16,16,1) fn press(
     @builtin(global_invocation_id) global_invocation_id : vec3<u32>,
 ) {
     press_pixel(global_invocation_id.xy);
@@ -151,8 +151,11 @@ fn post_pixel(
         return;
     }
 
+    let absoluteSpeed = 0.006;
+    let speed = absoluteSpeed / uniforms.planeSize;
+
     let uv = (vec2f(pos) + 0.5) / vec2f(dims);
-    let targetUv = uv + (normalize(uv - 0.5) * -0.0003);
+    let targetUv = uv + (normalize(uv - 0.5) * -speed);
     let val = sampleHeight(targetUv);
 
     textureStore(storageHeightMap, pos, vec4f(val));
