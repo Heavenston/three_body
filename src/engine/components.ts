@@ -4,6 +4,7 @@ import { Mat3, Mat4 } from "~/src/math/mat";
 import { Vec3 } from "~/src/math/vec";
 import { Mesh } from "./mesh";
 import { Renderer } from "./renderer";
+import { Material } from "../material";
 
 export class TransformComponent extends Component {
   public translation: Vec3 = Vec3.ZERO;
@@ -89,7 +90,7 @@ export class CameraComponent extends Component {
   }
 }
 
-export class MeshComponent extends Component {
+export class RenderComponent extends Component {
   public readonly renderer: Renderer;
   public uniformBuffer: GPUBuffer;
   public bindGroup: GPUBindGroup;
@@ -103,7 +104,8 @@ export class MeshComponent extends Component {
 
   constructor(
     entity: Entity,
-    public mesh: Mesh,
+    public readonly mesh: Mesh,
+    public readonly material: Material,
   ) {
     super(entity);
     this.renderer = this.application.renderer;
@@ -114,7 +116,7 @@ export class MeshComponent extends Component {
     });
 
     this.bindGroup = this.renderer.device.createBindGroup({
-      layout: mesh.material.pipeline.getBindGroupLayout(0),
+      layout: this.material.pipeline.getBindGroupLayout(0),
       entries: [
         { binding: 0, resource: { buffer: this.uniformBuffer } },
       ]

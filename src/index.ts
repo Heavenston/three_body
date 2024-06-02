@@ -1,7 +1,7 @@
 import { Application } from "~/src/engine/application";
 import { UserError } from "~/src/engine/usererror";
 import { Component, Entity } from "./engine/entity";
-import { CameraComponent, MeshComponent, TransformComponent } from "./engine/components";
+import { CameraComponent, RenderComponent, TransformComponent } from "./engine/components";
 import { Vec3 } from "./math/vec";
 import { Color } from "./math/color";
 
@@ -93,7 +93,7 @@ export class SheetComponent extends Component {
     entity: Entity,
   ) {
     super(entity);
-    this.mesh = entity.components.unwrap_get(MeshComponent).mesh;
+    this.mesh = entity.components.unwrap_get(RenderComponent).mesh;
     this.renderer = entity.application.renderer;
     const device = this.renderer.device;
 
@@ -184,7 +184,6 @@ export class SheetComponent extends Component {
 
     sphereMesh = Mesh.fromVertices(
       app.renderer,
-      material,
       vertices,
     );
   }
@@ -206,7 +205,6 @@ export class SheetComponent extends Component {
 
     smallSphereMesh = Mesh.fromVertices(
       app.renderer,
-      material,
       vertices,
     );
   }
@@ -219,7 +217,7 @@ export class SheetComponent extends Component {
     sphereEntity.addComponent(new TransformComponent(sphereEntity)
       .translate(pos)
     );
-    sphereEntity.addComponent(new MeshComponent(sphereEntity, sphereMesh)
+    sphereEntity.addComponent(new RenderComponent(sphereEntity, sphereMesh, material)
       .withColor(Color.BLACK)
     );
     sphereEntity.addComponent(new ParticleComponent(sphereEntity)
@@ -250,7 +248,7 @@ export class SheetComponent extends Component {
       const smallBall = new Entity(app);
       smallBall.addComponent(new TransformComponent(smallBall)
         .translate(smallBallPos));
-      smallBall.addComponent(new MeshComponent(smallBall, smallSphereMesh)
+      smallBall.addComponent(new RenderComponent(smallBall, smallSphereMesh, material)
         .withColor(Color.WHITE));
 
       sphereEntity.children.add(smallBall);
@@ -290,14 +288,13 @@ export class SheetComponent extends Component {
 
     planeMesh = Mesh.fromVertices(
       app.renderer,
-      material,
       vertices,
     );
   }
 
   const planeEntity = new Entity(app);
   planeEntity.addComponent(new TransformComponent(planeEntity));
-  planeEntity.addComponent(new MeshComponent(planeEntity, planeMesh));
+  planeEntity.addComponent(new RenderComponent(planeEntity, planeMesh, material));
   planeEntity.addComponent(new SheetComponent(planeEntity));
   app.spawn(planeEntity);
 

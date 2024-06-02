@@ -1,6 +1,6 @@
 import { Application } from "./application";
 import { Entity } from "./entity";
-import { CameraComponent, MeshComponent, TransformComponent } from "./components";
+import { CameraComponent, RenderComponent, TransformComponent } from "./components";
 import { UserError } from "./usererror";
 import { clamp } from "../math";
 import { Mat4 } from "../math/mat";
@@ -140,11 +140,11 @@ export class Renderer {
     const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
 
     function render(entity: Entity, worldTransform: Mat4 | null) {
-      const meshComp = entity.components.get(MeshComponent);
-      if (!meshComp)
+      const renderComp = entity.components.get(RenderComponent);
+      if (!renderComp)
         return;
-      const mesh = meshComp.mesh;
-      const material = mesh.material;
+      const mesh = renderComp.mesh;
+      const material = renderComp.material;
 
       const transform = entity.components.get(TransformComponent);
       if (!transform)
@@ -154,15 +154,15 @@ export class Renderer {
         ? transform.modelToWorld()
         : worldTransform.mul(transform.modelToWorld());
 
-      device.queue.writeBuffer(meshComp.uniformBuffer, 0, new Float32Array([
+      device.queue.writeBuffer(renderComp.uniformBuffer, 0, new Float32Array([
         ...modelMatrix.transpose().vals,
         ...viewProjMatrix.transpose().vals,
-        ...meshComp.color.vals,
+        ...renderComp.color.vals,
       ]));
 
       passEncoder.setPipeline(material.pipeline);
 
-      passEncoder.setBindGroup(0, meshComp.bindGroup);
+      passEncoder.setBindGroup(0, renderComp.bindGroup);
 
       passEncoder.setVertexBuffer(0, mesh.positionsBuffer);
       passEncoder.setVertexBuffer(1, mesh.normalsBuffer);

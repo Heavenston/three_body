@@ -1,4 +1,3 @@
-import { Material } from "../material";
 import { Vec2, Vec3 } from "../math/vec";
 import { Renderer } from "./renderer";
 
@@ -11,7 +10,6 @@ export type Vertices = {
 export class Mesh {
   constructor(
     public renderer: Renderer,
-    public material: Material,
     public positionsBuffer: GPUBuffer,
     public normalsBuffer: GPUBuffer,
     public uvsBuffer: GPUBuffer,
@@ -19,7 +17,6 @@ export class Mesh {
 
   public static fromVertices(
     renderer: Renderer,
-    material: Material,
     { positions, normals, uvs }: Vertices,
   ): Mesh {
     const device = renderer.device;
@@ -48,7 +45,6 @@ export class Mesh {
 
     return new Mesh(
       renderer, 
-      material,
       positionsBuffer,
       normalsBuffer,
       uvsBuffer,
@@ -226,6 +222,8 @@ export class Mesh {
   }
 
   public clean() {
+    this.normalsBuffer.destroy();
+    this.uvsBuffer.destroy();
+    this.positionsBuffer.destroy();
   }
 }
-
