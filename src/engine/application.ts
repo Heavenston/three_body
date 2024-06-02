@@ -116,15 +116,19 @@ export class Application {
     this.#defered = [];
 
     for (const entity of this.#entities) {
-      entity.update();
+      entity.beforeUpdate();
     }
 
     for (const entity of this.#entities) {
-      entity.afterUpdate();
+      entity.update();
     }
 
     this.updateStatusBar();
 
     this.renderer.render();
+
+    for (const entity of this.#entities) {
+      entity.afterUpdate();
+    }
   }
 }

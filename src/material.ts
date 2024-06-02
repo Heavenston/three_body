@@ -1,6 +1,11 @@
 import { Renderer } from "./engine/renderer";
 
 export class Material {
+  public customBindGroups: {
+    target: number,
+    bg: GPUBindGroup,
+  }[] = [];
+
   constructor(
     public renderer: Renderer,
     public pipeline: GPURenderPipeline,

@@ -10,12 +10,15 @@ export class TransformComponent extends Component {
   #expandedAffine: Mat4 | null = null;
 
   #translation: Vec3 = Vec3.ZERO;
+  #translationDirty: boolean = true;
   #affine: Mat3 = Mat3.IDENT;
+  #affineDirty: boolean = true;
 
   get translation(): Vec3 {
     return this.#translation;
   }
   set translation(value: Vec3) {
+    this.#translationDirty = true;
     this.#translation = value;
   }
   get affine(): Mat3 {
@@ -23,7 +26,12 @@ export class TransformComponent extends Component {
   }
   set affine(value: Mat3) {
     this.#affine = value;
+    this.#affineDirty = true;
     this.#expandedAffine = null;
+  }
+
+  get isDirty(): boolean {
+    return this.#translationDirty || this.#affineDirty;
   }
 
   get expandedAffine(): Mat4 {
@@ -83,6 +91,11 @@ export class TransformComponent extends Component {
     this.affine = Mat3.looking_at(this.translation, to, Vec3.UP);
     return this;
   }
+
+  public override afterUpdate(): void {
+    this.#affineDirty = false;
+    this.#translationDirty = false;
+  }
 }
 
 export class CameraComponent extends Component {
@@ -130,5 +143,11 @@ export class RenderComponent extends Component {
   ) {
     super(entity);
     this.renderer = this.application.renderer;
+  }
+
+  public get requireUpdate(): boolean {
+    return this.instanceGroup === null ||
+      (this.entity.components.get(TransformComponent)?.isDirty ?? false) ||
+      (this.entity.parent?.components.get(RenderComponent)?.requireUpdate ?? false);
   }
 }

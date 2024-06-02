@@ -7,7 +7,7 @@ import { Color } from "./math/color";
 
 import shaderSource from "bundle-text:./shaders/basic.wgsl";
 import computeShaderSource from "bundle-text:./shaders/compute.wgsl";
-import sheetBallsShaderSource from "bundle-text:./shaders/basic.wgsl";
+import sheetBallsShaderSource from "bundle-text:./shaders/basic_plane_balls.wgsl";
 import { Mat3 } from "./math/mat";
 import { G, clamp } from "./math";
 import { Material } from "./material";
@@ -259,6 +259,16 @@ export class SheetComponent extends Component {
     });
 
     this.ballMaterial = Material.fromSource(this.renderer, sheetBallsShaderSource);
+    this.ballMaterial.customBindGroups.push({
+      bg: device.createBindGroup({
+        layout: this.ballMaterial.pipeline.getBindGroupLayout(1),
+        entries: [
+          { binding: 0, resource: this.heightmapPost.createView() },
+          { binding: 1, resource: this.heightmapSampler },
+        ]
+      }),
+      target: 1,
+    });
   }
 
   public override update(): void {
@@ -476,11 +486,13 @@ const run = async () => {
   const planeEntity = new Entity(app);
   planeEntity.addComponent(new TransformComponent(planeEntity));
   planeEntity.addComponent(new RenderComponent(planeEntity, planeMesh, material)
-    .withColor(new Color(0.1,0.1,0.1,1.)));
+    // .withColor(new Color(0.1,0.1,0.1,1.))
+    .withColor(new Color(0.,0.,0.,1.))
+  );
   const sheetComp = new SheetComponent(planeEntity, planeSize, planeSubdivs);
   planeEntity.addComponent(sheetComp);
 
-  const ballSep = 0.25;
+  const ballSep = 0.18;
   for (let x = -planeSize/2; x < planeSize/2; x += ballSep) {
     for (let y = -planeSize/2; y < planeSize/2; y += ballSep) {
       const smallBallPos = new Vec3(x, 0, y);

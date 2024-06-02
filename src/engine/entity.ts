@@ -11,6 +11,7 @@ export abstract class Component {
     this.application = entity.application;
   }
 
+  public beforeUpdate(): void {}
   public update(): void {}
   public afterUpdate(): void {}
 
@@ -170,6 +171,18 @@ export class Entity {
 
     for (const child of this.children) {
       child.onDespawn();
+    }
+  }
+
+  public beforeUpdate(): void {
+    if (!this.#spawned)
+      throw new Error("should not update if not spawned");
+
+    for (const comp of this.components.values())
+      comp.beforeUpdate();
+
+    for (const child of this.children) {
+      child.beforeUpdate();
     }
   }
 

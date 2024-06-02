@@ -23,6 +23,7 @@ interface InstanceRenderBuffers {
 
 export class InstanceGroup {
   #members: Set<Entity> = new Set();
+  #anyDataChange: boolean = false;
   #datas: Map<Entity, InstanceData> = new Map();
 
   public static readonly INSTANCE_DATA_SIZE = (4 * 16) + (4 * 4);
@@ -96,9 +97,14 @@ export class InstanceGroup {
 
   public setEntityData(entity: Entity, data: InstanceData) {
     this.#datas.set(entity, data);
+    this.#anyDataChange = true;
   }
 
   public upload() {
+    if (this.buffers && !this.#anyDataChange)
+      return;
+    this.#anyDataChange = false;
+
     const { dataArray, dataBuffer, } = this.reallocIfNeeded();
 
     let index = 0;
@@ -130,6 +136,9 @@ export class InstanceGroup {
     encoder.setPipeline(this.material.pipeline);
 
     encoder.setBindGroup(0, this.buffers.bindgroup);
+    for (const bg of this.material.customBindGroups) {
+      encoder.setBindGroup(bg.target, bg.bg);
+    }
 
     encoder.setVertexBuffer(0, this.mesh.positionsBuffer);
     encoder.setVertexBuffer(1, this.mesh.normalsBuffer);
@@ -289,8 +298,14 @@ export class Renderer {
         modelMatrix: modelMatrix.clone().freeze(),
       });
     };
-    const updateRec = (entity: Entity, worldTransform: MatMut4 | null) => {
-      update(entity, worldTransform);
+    const updateRec = (entity: Entity, worldTransform: MatMut4 | null, forceUpdate: boolean) => {
+      const require = entity.components.get(RenderComponent)?.requireUpdate ?? false;
+      if (forceUpdate || require)
+        update(entity, worldTransform);
+
+      if (entity.children.size === 0)
+        return;
+        
       const transform = entity.components.get(TransformComponent);
       if (transform) {
         worldTransform = worldTransform 
@@ -298,11 +313,11 @@ export class Renderer {
           : transform.modelToWorld();
       }
       for (const child of entity.children) {
-        updateRec(child, worldTransform);
+        updateRec(child, worldTransform, forceUpdate || require);
       }
     };
     for (const entity of this.application.entities) {
-      updateRec(entity, null);
+      updateRec(entity, null, false);
     }
 
     for (const ig of this.instanceGroups)
