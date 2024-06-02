@@ -46,11 +46,8 @@ export class Application {
     let animationFrame: number | null = null;
     const frame = (time: number) => {
       try {
-        time /= 1000;
-
-        if (!lastT)
-          lastT = time;
-        this.update(clamp(time - lastT, 0, 0.5));
+        if (lastT)
+          this.update(clamp((time - lastT) / 1000, 0, 1 / 30));
         lastT = time;
 
         if (animationFrame != null)
@@ -66,14 +63,12 @@ export class Application {
       this.canvas.width = document.body.clientWidth;
       this.canvas.height = document.body.clientHeight;
       if (lastT)
-        frame(lastT*1000);
-      else {
-        requestAnimationFrame(frame);
-      }
+        frame(lastT);
     };
 
     resizeCanvas();
     new ResizeObserver(resizeCanvas).observe(document.body);
+    requestAnimationFrame(frame);
 
     return promise;
   }
@@ -121,6 +116,10 @@ export class Application {
 
     for (const entity of this.#entities) {
       entity.update();
+    }
+
+    for (const entity of this.#entities) {
+      entity.afterUpdate();
     }
 
     this.updateStatusBar();

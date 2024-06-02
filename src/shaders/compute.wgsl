@@ -151,7 +151,7 @@ fn post_pixel(
         return;
     }
 
-    let absoluteSpeed = 0.006;
+    let absoluteSpeed = 0.005;
     let speed = absoluteSpeed / uniforms.planeSize;
 
     let uv = (vec2f(pos) + 0.5) / vec2f(dims);

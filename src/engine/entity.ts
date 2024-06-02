@@ -12,6 +12,7 @@ export abstract class Component {
   }
 
   public update(): void {}
+  public afterUpdate(): void {}
 
   public start(): void {}
   public stop(): void {}
@@ -181,6 +182,18 @@ export class Entity {
 
     for (const child of this.children) {
       child.update();
+    }
+  }
+
+  public afterUpdate(): void {
+    if (!this.#spawned)
+      throw new Error("should not update if not spawned");
+
+    for (const comp of this.components.values())
+      comp.afterUpdate();
+
+    for (const child of this.children) {
+      child.afterUpdate();
     }
   }
 }

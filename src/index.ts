@@ -23,12 +23,19 @@ export class MassiveComponent extends Component {
 }
 
 export class ParticleComponent extends Component {
+  public position: Vec3 = Vec3.ZERO;
   public velocity: Vec3 = Vec3.ZERO;
   public radius: number = 0.5;
 
   public withVelocity(vel: Vec3): this {
     this.velocity = vel;
     return this;
+  }
+
+  public override start() {
+    super.start();
+    const transform = this.entity.components.unwrap_get(TransformComponent);
+    this.position = transform.translation;
   }
 
   public override update() {
@@ -42,20 +49,20 @@ export class ParticleComponent extends Component {
     for (const entity of this.application.entities) {
       if (entity === this.entity)
         continue;
-      const other_transform = entity.components.get(TransformComponent);
-      if (!other_transform)
+      const other_particle = entity.components.get(ParticleComponent);
+      if (!other_particle)
         continue;
       const other_mass = entity.components.get(MassiveComponent);
       if (!other_mass)
         continue;
-      const diff = other_transform.translation
-        .sub(transform.translation);
+      const diff = other_particle.position
+        .sub(this.position);
       const dist = diff.norm();
       const dir = diff.div(dist);
 
-      let actualDist = clamp(dist, this.radius, null);
+      // let actualDist = clamp(dist, this.radius/2, null);
 
-      force = force.add(dir.mul((G * other_mass.mass) / (actualDist ** 2)))
+      force = force.add(dir.mul(other_mass.mass / (dist * dist)))
         .as_vec3();
     }
 
@@ -65,7 +72,13 @@ export class ParticleComponent extends Component {
     transform.globalRotateZ(-(this.velocity.x / this.radius) * dt);
     transform.globalRotateX((this.velocity.z / this.radius) * dt);
 
-    transform.translate(this.velocity.mul(dt).as_vec3());
+    transform.translation = this.position;
+  }
+
+  public override afterUpdate(): void {
+    const dt = this.application.dt;
+    this.position = this.position.add(this.velocity.mul(dt).as_vec3())
+      .as_vec3();
   }
 }
 
@@ -380,9 +393,13 @@ const run = async () => {
     sphereEntity.addComponent(new ParticleComponent(sphereEntity)
       .withVelocity(velocity)
     );
+    sphereEntity.addComponent(new MassiveComponent(sphereEntity)
+      .withMass(12)
+    );
 
     const radius = 0.5;
-    const n = 150;
+    // const n = 150;
+    const n = 0;
 
     // Function to convert spherical coordinates to Cartesian coordinates
     const sphericalToCartesian = (r: number, theta: number, phi: number) => {
@@ -415,8 +432,8 @@ const run = async () => {
   };
 
   const ballCount = 3;
-  for (let angle = 0; angle < Math.PI*2; angle += (Math.PI*2)/ballCount) {
-    const rotate = Mat3.rotateY(angle);
+  for (let balli = 0; balli < ballCount; balli++) {
+    const rotate = Mat3.rotateY((balli / ballCount) * Math.PI * 2);
     spawnBall(rotate.mul(new Vec3(0,0,3)), rotate.mul(new Vec3(1.1,0,0)));
   }
   // spawnBall(new Vec3(-5, 0, 0), new Vec3(1,0,0));
@@ -425,11 +442,11 @@ const run = async () => {
   // spawnBall(new Vec3(0, 0, 5), new Vec3(-0.25,0,-0.25));
   // spawnBall(new Vec3(5, 0, 0), new Vec3(-1,0,1));
 
-  const pointMass = new Entity(app);
-  pointMass.addComponent(new TransformComponent(pointMass));
-  pointMass.addComponent(new MassiveComponent(pointMass)
-    .withMass(10e10 + 10e9));
-  app.spawn(pointMass);
+  // const pointMass = new Entity(app);
+  // pointMass.addComponent(new TransformComponent(pointMass));
+  // pointMass.addComponent(new MassiveComponent(pointMass)
+  //   .withMass(10e10 + 10e9));
+  // app.spawn(pointMass);
 
   const planeSize = 40;
   const planeSubdivs = 800;
