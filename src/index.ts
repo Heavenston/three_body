@@ -98,7 +98,9 @@ export class SheetComponent extends Component {
   public displacePipeline: GPUComputePipeline;
   public displaceBindgroup: GPUBindGroup;
 
-  public heightmap: GPUTexture;
+  public heightmapPre: GPUTexture;
+  public heightmapPost: GPUTexture;
+  public heightmapSampler: GPUSampler;
 
   private readonly particleDataSize: number = 4 * 4;
 
@@ -121,14 +123,29 @@ export class SheetComponent extends Component {
       size: 12,
     });
 
-    this.heightmap = device.createTexture({
+    this.heightmapPre = device.createTexture({
+      label: "heightMap",
       format: "r32float",
       size: [planeSubdivs,planeSubdivs],
-      usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.STORAGE_BINDING,
+      usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING,
+    });
+    this.heightmapPost = device.createTexture({
+      label: "heightMap",
+      format: "r32float",
+      size: [planeSubdivs,planeSubdivs],
+      usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING,
+    });
+    this.heightmapSampler = device.createSampler({
+      label: "heightMapSamper",
+      minFilter: "linear",
+      magFilter: "linear",
+      addressModeU: "clamp-to-edge",
+      addressModeV: "clamp-to-edge",
+      mipmapFilter: "linear",
     });
 
     device.queue.writeTexture(
-      { texture: this.heightmap, },
+      { texture: this.heightmapPre, },
       new Float32Array(planeSubdivs**2).fill(Infinity),
       {
         bytesPerRow: planeSubdivs * 4,
@@ -154,14 +171,16 @@ export class SheetComponent extends Component {
 
     this.pressBindgroup = device.createBindGroup({
       layout: this.pressPipeline.getBindGroupLayout(0),
-      label: "sheet bind group",
+      label: "press sheet bind group",
       entries: [
         // { binding: 0, resource: { buffer: this.mesh.positionsBuffer } },
         // { binding: 1, resource: { buffer: this.mesh.normalsBuffer } },
         // { binding: 2, resource: { buffer: this.mesh.uvsBuffer } },
         { binding: 3, resource: { buffer: this.uniform } },
-        { binding: 4, resource: this.heightmap.createView() },
-        { binding: 5, resource: { buffer: this.particlesBuffer } },
+        { binding: 4, resource: this.heightmapPre.createView() },
+        // { binding: 5, resource: this.heightmapPost.createView() },
+        { binding: 6, resource: { buffer: this.particlesBuffer } },
+        // { binding: 7, resource: this.heightmapSampler },
       ],
     });
 
@@ -176,14 +195,16 @@ export class SheetComponent extends Component {
 
     this.postBindgroup = device.createBindGroup({
       layout: this.postPipeline.getBindGroupLayout(0),
-      label: "sheet bind group",
+      label: "post sheet bind group",
       entries: [
         // { binding: 0, resource: { buffer: this.mesh.positionsBuffer } },
         // { binding: 1, resource: { buffer: this.mesh.normalsBuffer } },
         // { binding: 2, resource: { buffer: this.mesh.uvsBuffer } },
         // { binding: 3, resource: { buffer: this.uniform } },
-        { binding: 4, resource: this.heightmap.createView() },
-        // { binding: 5, resource: { buffer: this.particlesBuffer } },
+        { binding: 4, resource: this.heightmapPre.createView() },
+        // { binding: 5, resource: this.heightmapPost.createView() },
+        // { binding: 6, resource: { buffer: this.particlesBuffer } },
+        // { binding: 7, resource: this.heightmapSampler },
       ],
     });
 
@@ -198,13 +219,16 @@ export class SheetComponent extends Component {
 
     this.displaceBindgroup = device.createBindGroup({
       layout: this.displacePipeline.getBindGroupLayout(0),
-      label: "sheet bind group",
+      label: "displace sheet bind group",
       entries: [
         { binding: 0, resource: { buffer: this.mesh.positionsBuffer } },
         { binding: 1, resource: { buffer: this.mesh.normalsBuffer } },
         { binding: 2, resource: { buffer: this.mesh.uvsBuffer } },
         // { binding: 3, resource: { buffer: this.uniform } },
-        { binding: 4, resource: this.heightmap.createView() },
+        // { binding: 4, resource: this.heightmapPre.createView() },
+        { binding: 5, resource: this.heightmapPost.createView() },
+        // { binding: 6, resource: { buffer: this.particlesBuffer } },
+        { binding: 7, resource: this.heightmapSampler },
       ],
     });
   }
@@ -240,11 +264,11 @@ export class SheetComponent extends Component {
 
     passEncoder.setPipeline(this.pressPipeline);
     passEncoder.setBindGroup(0, this.pressBindgroup);
-    passEncoder.dispatchWorkgroups(this.heightmap.width, this.heightmap.height, 1);
+    passEncoder.dispatchWorkgroups(this.heightmapPre.width, this.heightmapPre.height, 1);
 
     passEncoder.setPipeline(this.postPipeline);
     passEncoder.setBindGroup(0, this.postBindgroup);
-    passEncoder.dispatchWorkgroups(this.heightmap.width, this.heightmap.height, 1);
+    passEncoder.dispatchWorkgroups(this.heightmapPre.width, this.heightmapPre.height, 1);
 
     const count = this.mesh.positionsBuffer.size / (4 * 3);
 

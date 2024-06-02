@@ -165,8 +165,12 @@ export class Renderer {
     application: Application,
     canvas: HTMLCanvasElement,
   ): Promise<Renderer> {
-    const adapter = await navigator.gpu?.requestAdapter()
-    const device = await adapter?.requestDevice();
+    const adapter = await navigator.gpu?.requestAdapter();
+    const device = await adapter?.requestDevice({
+      requiredFeatures: [
+        "float32-filterable",
+      ]
+    });
     if (!adapter || !device) {
       throw new UserError("Could not request adapter");
     }

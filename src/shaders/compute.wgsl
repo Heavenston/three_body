@@ -19,8 +19,10 @@ struct Particle {
 @group(0) @binding(1) var<storage, read_write> normals: array<f32>;
 @group(0) @binding(2) var<storage, read_write> uvs: array<f32>;
 @group(0) @binding(3) var<uniform> uniforms: Uniforms;
-@group(0) @binding(4) var heightMap: texture_storage_2d<r32float, read_write>;
-@group(0) @binding(5) var<storage, read> particles: array<Particle>;
+@group(0) @binding(4) var storageHeightMap: texture_storage_2d<r32float, read_write>;
+@group(0) @binding(5) var textureHeightMap: texture_2d<f32>;
+@group(0) @binding(6) var<storage, read> particles: array<Particle>;
+@group(0) @binding(7) var samplerHeightMap: sampler;
 
 fn getPos(i: u32) -> vec3f {
     return vec3f(positions[i*3], positions[i*3+1], positions[i*3+2]);
@@ -44,10 +46,11 @@ fn getUv(i: u32) -> vec2f {
     return vec2f(uvs[i*2], uvs[i*2+1]);
 }
 
-fn sampleHeight(uv: vec2f) -> f32{
-    let dims = textureDimensions(heightMap);
-    let actual = vec2(u32(uv.x * f32(dims.x)), u32(uv.y * f32(dims.y)));
-    return textureLoad(heightMap, actual).x;
+fn sampleHeight(uv: vec2f) -> f32 {
+    // let dims = textureDimensions(storageHeightMap);
+    // let actual = vec2(u32(uv.x * f32(dims.x)), u32(uv.y * f32(dims.y)));
+    // return textureLoad(storageHeightMap, actual).x;
+    return textureSampleLevel(textureHeightMap, samplerHeightMap, uv, 0.).r;
 }
 
 fn displace_vertex(
@@ -89,7 +92,7 @@ fn displace_vertex(
 fn press_pixel(
     pos: vec2<u32>
 ) {
-    let dims = textureDimensions(heightMap);
+    let dims = textureDimensions(storageHeightMap);
     if (pos.x > dims.x || pos.y > dims.y) {
         return;
     }
@@ -111,11 +114,11 @@ fn press_pixel(
         else {
             height = -sqrt((radius * radius) - (dist * dist));
         }
-        height = min(height, 0.5);
+        height = min(height, 0.);
 
-        let previousHeight = textureLoad(heightMap, pos).x;
+        let previousHeight = textureLoad(storageHeightMap, pos).x;
         height = min(height, previousHeight);
-        textureStore(heightMap, pos, vec4f(height));
+        textureStore(storageHeightMap, pos, vec4f(height));
     }
 }
 
@@ -130,20 +133,20 @@ fn get_pixel_i32(
     pos: vec2<i32>,
     counted: ptr<function, bool>,
 ) -> f32 {
-    let dims = textureDimensions(heightMap);
+    let dims = textureDimensions(storageHeightMap);
     if (pos.x < 0 || pos.y < 0 || pos.x > i32(dims.x) || pos.y > i32(dims.y)) {
         *counted = false;
         return 0.;
     }
     *counted = true;
 
-    return textureLoad(heightMap, vec2u(pos)).x;
+    return textureLoad(storageHeightMap, vec2u(pos)).x;
 }
 
 fn post_pixel(
     pos: vec2<u32>
 ) {
-    let dims = textureDimensions(heightMap);
+    let dims = textureDimensions(storageHeightMap);
     if (pos.x > dims.x || pos.y > dims.y) {
         return;
     }
@@ -170,7 +173,7 @@ fn post_pixel(
 
     let val = sum / count + 0.001;
 
-    textureStore(heightMap, pos, vec4f(val));
+    textureStore(storageHeightMap, pos, vec4f(val));
 }
 
 // Make particles make an indent on the texture
