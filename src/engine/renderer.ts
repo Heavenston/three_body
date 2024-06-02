@@ -3,7 +3,7 @@ import { Entity } from "./entity";
 import { CameraComponent, RenderComponent, TransformComponent } from "./components";
 import { UserError } from "./usererror";
 import { clamp } from "../math";
-import { Mat4 } from "../math/mat";
+import { Mat4, MatMut4 } from "../math/mat";
 import { Material } from "../material";
 import { Mesh } from "./mesh";
 import { Color } from "../math/color";
@@ -258,7 +258,10 @@ export class Renderer {
     for (const ig of this.instanceGroups)
       ig.prune();
 
-    const update = (entity: Entity, worldTransform: Mat4 | null) => {
+    const outMat1 = new MatMut4();
+    const outMat2 = new MatMut4();
+
+    const update = (entity: Entity, worldTransform: MatMut4 | null) => {
       const renderComp = entity.components.get(RenderComponent);
       if (!renderComp)
         return;
@@ -269,8 +272,8 @@ export class Renderer {
       const material = renderComp.material;
 
       const modelMatrix = worldTransform === null
-        ? transform.modelToWorld()
-        : worldTransform.mul(transform.modelToWorld());
+        ? transform.modelToWorld(outMat1)
+        : worldTransform.mul(transform.modelToWorld(outMat1), outMat2);
 
       if (renderComp.instanceGroup === null) {
         renderComp.instanceGroup = this.findOrCreateInstanceGroup(mesh, material);
@@ -279,10 +282,10 @@ export class Renderer {
 
       renderComp.instanceGroup.setEntityData(entity, {
         color: renderComp.color,
-        modelMatrix: modelMatrix,
+        modelMatrix: modelMatrix.clone().freeze(),
       });
     };
-    const updateRec = (entity: Entity, worldTransform: Mat4 | null) => {
+    const updateRec = (entity: Entity, worldTransform: MatMut4 | null) => {
       update(entity, worldTransform);
       const transform = entity.components.get(TransformComponent);
       if (transform) {

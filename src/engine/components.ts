@@ -1,18 +1,41 @@
 import { Component, Entity } from "./entity";
 import { Color } from "~/src/math/color";
-import { Mat3, Mat4 } from "~/src/math/mat";
+import { Mat3, Mat4, MatMut4 } from "~/src/math/mat";
 import { Vec3 } from "~/src/math/vec";
 import { Mesh } from "./mesh";
 import { InstanceGroup, Renderer } from "./renderer";
 import { Material } from "../material";
 
 export class TransformComponent extends Component {
-  public translation: Vec3 = Vec3.ZERO;
-  public affine: Mat3 = Mat3.IDENT;
+  #expandedAffine: Mat4 | null = null;
 
-  public modelToWorld(): Mat4 {
-    return Mat4.fromTranslation(this.translation)
-      .mul(this.affine.expand());
+  #translation: Vec3 = Vec3.ZERO;
+  #affine: Mat3 = Mat3.IDENT;
+
+  get translation(): Vec3 {
+    return this.#translation;
+  }
+  set translation(value: Vec3) {
+    this.#translation = value;
+  }
+  get affine(): Mat3 {
+    return this.#affine;
+  }
+  set affine(value: Mat3) {
+    this.#affine = value;
+    this.#expandedAffine = null;
+  }
+
+  get expandedAffine(): Mat4 {
+    if (!this.#expandedAffine)
+      this.#expandedAffine = this.#affine.expand();
+    return this.#expandedAffine;
+  }
+  
+  public modelToWorld(out?: MatMut4): MatMut4 {
+    return (out ?? new MatMut4())
+      .setFromTranslation(this.translation)
+      .mul(this.expandedAffine);
   }
 
   public translate(trans: Vec3): this {
@@ -77,7 +100,7 @@ export class CameraComponent extends Component {
 
   public view(): Mat4 {
     const transform = this.entity.components.unwrap_get(TransformComponent);
-    return transform.modelToWorld().inverse() ?? Mat4.IDENT;
+    return transform.modelToWorld().freeze().inverse() ?? Mat4.IDENT;
   }
 
   public projection(): Mat4 {

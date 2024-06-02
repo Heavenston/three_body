@@ -93,6 +93,15 @@ export class Mat3 {
     );
   }
 
+  public expandMut(): MatMut4 {
+    return new MatMut4([
+      this.vals[0], this.vals[1], this.vals[2], 0,
+      this.vals[3], this.vals[4], this.vals[5], 0,
+      this.vals[6], this.vals[7], this.vals[8], 0,
+      0,            0,            0,            1,
+    ]);
+  }
+
   public transpose(): Mat3 {
     return new Mat3(
       this.vals[0], this.vals[3], this.vals[6],
@@ -130,13 +139,24 @@ export class Mat3 {
   }
 }
 
+export type SomeMat4 = Mat4 | MatMut4;
+
 export class Mat4 {
   public readonly vals: Readonly<number[]>;
 
-  constructor(...vals: number[]) {
-    if (vals.length !== 16)
+  constructor(vals: number[]);
+  constructor(...vals: number[]);
+  constructor(val1: number | number[], ...vals: number[]) {
+    if (typeof val1 === "number") {
+      this.vals = Object.freeze([val1, ...vals]);
+    }
+    else if (Array.isArray(val1)) {
+      this.vals = Object.freeze(val1);
+    }
+    else
+      throw new TypeError("invalid");
+    if (this.vals.length !== 16)
       throw new RangeError("9 elements expected");
-    this.vals = Object.freeze(vals);
   }
 
   public static IDENT: Mat4 = new Mat4(
@@ -207,17 +227,17 @@ export class Mat4 {
     return new Vec4(this.vals[row * 4], this.vals[row * 4 + 1], this.vals[row * 4 + 2], this.vals[row * 4 + 3]);
   }
 
-  public add(other: Mat4): Mat4 {
+  public add(other: SomeMat4): Mat4 {
     return new Mat4(...this.vals.map((v, i) => v + other.vals[i]));
   }
 
-  public sub(other: Mat4): Mat4 {
+  public sub(other: SomeMat4): Mat4 {
     return new Mat4(...this.vals.map((v, i) => v - other.vals[i]));
   }
 
-  public mul(other: Mat4): Mat4;
+  public mul(other: SomeMat4): Mat4;
   public mul(other: number): Mat4;
-  public mul(other: Mat4 | number): Mat4 {
+  public mul(other: SomeMat4 | number): Mat4 {
     if (typeof other === "number") {
       return new Mat4(...this.vals.map(val => val * other));
     }
@@ -286,5 +306,199 @@ export class Mat4 {
     const cofactorMatrix = this.comatrix();
     const adjugate = cofactorMatrix.transpose();
     return adjugate.div(det);
+  }
+
+  public asMut(): MatMut4 {
+    return new MatMut4([...this.vals]);
+  }
+}
+
+export class MatMut4 {
+  public vals: number[];
+
+  constructor(vals?: number[]) {
+    if (vals) {
+      if (vals.length !== 16) throw new RangeError("16 elements expected");
+      this.vals = vals;
+    } else {
+      this.vals = new Array(16).fill(0);
+    }
+  }
+
+  public static IDENT: MatMut4 = new MatMut4([
+    1, 0, 0, 0,
+    0, 1, 0, 0,
+    0, 0, 1, 0,
+    0, 0, 0, 1,
+  ]);
+
+  public setFromTranslation(trans: Vec3): MatMut4 {
+    this.vals = [
+      1, 0, 0, trans.x,
+      0, 1, 0, trans.y,
+      0, 0, 1, trans.z,
+      0, 0, 0, 1,
+    ];
+    return this;
+  }
+
+  public setPerspective(cfg: {
+    fov_radians: number,
+    aspect: number,
+    near: number,
+    far: number,
+  }): this {
+    const f = Math.tan(Math.PI * 0.5 - 0.5 * cfg.fov_radians);
+    const rangeInv = 1 / (cfg.near - cfg.far);
+
+    this.vals = [
+      f / cfg.aspect, 0, 0,                                   0,
+      0,              f, 0,                                   0,
+      0,              0, (cfg.near + cfg.far) * rangeInv,    -1,
+      0,              0, cfg.near * cfg.far * rangeInv * 2,   0
+    ];
+
+    this.transpose();
+    return this;
+  }
+
+  public clone(): MatMut4 {
+    return new MatMut4(this.vals.slice());
+  }
+
+  public freeze(): Mat4 {
+    return new Mat4(this.vals);
+  }
+
+  public get(row: number, col: number): number {
+    if (row >= 4 || col >= 4 || row < 0 || col < 0)
+      throw new RangeError("out of bound get");
+    return this.vals[col + row * 4];
+  }
+
+  public transpose(): MatMut4 {
+    const m = this.vals;
+
+    let tmp: number;
+
+    tmp = m[1]; m[1] = m[4]; m[4] = tmp;
+    tmp = m[2]; m[2] = m[8]; m[8] = tmp;
+    tmp = m[3]; m[3] = m[12]; m[12] = tmp;
+    tmp = m[6]; m[6] = m[9]; m[9] = tmp;
+    tmp = m[7]; m[7] = m[13]; m[13] = tmp;
+    tmp = m[11]; m[11] = m[14]; m[14] = tmp;
+
+    return this;
+  }
+
+  public column(col: number): Vec4 {
+    if (col >= 4 || col < 0) throw new RangeError("out of bound get");
+    return new Vec4(this.vals[col], this.vals[col + 4], this.vals[col + 8], this.vals[col + 12]);
+  }
+
+  public row(row: number): Vec4 {
+    if (row >= 4 || row < 0) throw new RangeError("out of bound get");
+    return new Vec4(this.vals[row * 4], this.vals[row * 4 + 1], this.vals[row * 4 + 2], this.vals[row * 4 + 3]);
+  }
+
+  public add(other: SomeMat4, output?: MatMut4): MatMut4 {
+    const result = output || this;
+    for (let i = 0; i < 16; i++) {
+      result.vals[i] = this.vals[i] + other.vals[i];
+    }
+    return result;
+  }
+
+  public sub(other: SomeMat4, output?: MatMut4): MatMut4 {
+    const result = output || this;
+    for (let i = 0; i < 16; i++) {
+      result.vals[i] = this.vals[i] - other.vals[i];
+    }
+    return result;
+  }
+
+  public mul(other: SomeMat4 | number, output?: MatMut4): MatMut4 {
+    const result = output || new MatMut4();
+    if (typeof other === "number") {
+      for (let i = 0; i < 16; i++) {
+        result.vals[i] = this.vals[i] * other;
+      }
+      return result;
+    }
+
+    const a = this.vals;
+    const b = other.vals;
+    const r = result.vals;
+
+    for (let row = 0; row < 4; row++) {
+      for (let col = 0; col < 4; col++) {
+        r[col + row * 4] =
+          a[row * 4] * b[col] +
+          a[row * 4 + 1] * b[col + 4] +
+          a[row * 4 + 2] * b[col + 8] +
+          a[row * 4 + 3] * b[col + 12];
+      }
+    }
+
+    return result;
+  }
+
+  public div(other: number, output?: MatMut4): MatMut4 {
+    const result = output || this;
+    for (let i = 0; i < 16; i++) {
+      result.vals[i] = this.vals[i] / other;
+    }
+    return result;
+  }
+
+  public det(): number {
+    const m = this.vals;
+    return (
+      m[3] * m[6] * m[9] * m[12] - m[2] * m[7] * m[9] * m[12] - m[3] * m[5] * m[10] * m[12] + m[1] * m[7] * m[10] * m[12] +
+      m[2] * m[5] * m[11] * m[12] - m[1] * m[6] * m[11] * m[12] - m[3] * m[6] * m[8] * m[13] + m[2] * m[7] * m[8] * m[13] +
+      m[3] * m[4] * m[10] * m[13] - m[0] * m[7] * m[10] * m[13] - m[2] * m[4] * m[11] * m[13] + m[0] * m[6] * m[11] * m[13] +
+      m[3] * m[5] * m[8] * m[14] - m[1] * m[7] * m[8] * m[14] - m[3] * m[4] * m[9] * m[14] + m[0] * m[7] * m[9] * m[14] +
+      m[1] * m[4] * m[11] * m[14] - m[0] * m[5] * m[11] * m[14] - m[2] * m[5] * m[8] * m[15] + m[1] * m[6] * m[8] * m[15] +
+      m[2] * m[4] * m[9] * m[15] - m[0] * m[6] * m[9] * m[15] - m[1] * m[4] * m[10] * m[15] + m[0] * m[5] * m[10] * m[15]
+    );
+  }
+
+  public comatrix(output?: MatMut4): MatMut4 {
+    const result = output || new MatMut4();
+    const m = this.vals;
+    const r = result.vals;
+
+    const cofactor = (r: number, c: number): number => {
+      const submat = [];
+      for (let i = 0; i < 4; i++) {
+        for (let j = 0; j < 4; j++) {
+          if (i !== r && j !== c) {
+            submat.push(m[i * 4 + j]);
+          }
+        }
+      }
+      const determinant3x3 = (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number): number => {
+        return a * (e * i - f * h) - b * (d * i - f * g) + c * (d * h - e * g);
+      };
+      const det = determinant3x3(submat[0], submat[1], submat[2], submat[3], submat[4], submat[5], submat[6], submat[7], submat[8]);
+      return ((r + c) % 2 === 0 ? 1 : -1) * det;
+    };
+
+    r[0] = cofactor(0, 0); r[1] = cofactor(0, 1); r[2] = cofactor(0, 2); r[3] = cofactor(0, 3);
+    r[4] = cofactor(1, 0); r[5] = cofactor(1, 1); r[6] = cofactor(1, 2); r[7] = cofactor(1, 3);
+    r[8] = cofactor(2, 0); r[9] = cofactor(2, 1); r[10] = cofactor(2, 2); r[11] = cofactor(2, 3);
+    r[12] = cofactor(3, 0); r[13] = cofactor(3, 1); r[14] = cofactor(3, 2); r[15] = cofactor(3, 3);
+
+    return result;
+  }
+
+  public inverse(output?: MatMut4): MatMut4 | null {
+    const det = this.det();
+    if (isZeroApprox(det)) return null;
+
+    const result = this.comatrix(output);
+    result.transpose();
+    result.div(det);
+    return result;
   }
 }
