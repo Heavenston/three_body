@@ -123,34 +123,44 @@ export class SheetComponent extends Component {
       size: 12,
     });
 
+    const w = planeSubdivs;
+
     this.heightmapPre = device.createTexture({
-      label: "heightMap",
+      label: "heightMap pre",
       format: "r32float",
-      size: [planeSubdivs,planeSubdivs],
-      usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING,
+      size: [w,w],
+      usage:
+        GPUTextureUsage.COPY_DST |
+        GPUTextureUsage.STORAGE_BINDING |
+        GPUTextureUsage.TEXTURE_BINDING
+      ,
     });
     this.heightmapPost = device.createTexture({
-      label: "heightMap",
+      label: "heightMap post",
       format: "r32float",
-      size: [planeSubdivs,planeSubdivs],
-      usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING,
+      size: [w,w],
+      usage:
+        GPUTextureUsage.COPY_SRC |
+        GPUTextureUsage.COPY_DST |
+        GPUTextureUsage.STORAGE_BINDING |
+        GPUTextureUsage.TEXTURE_BINDING
+      ,
     });
     this.heightmapSampler = device.createSampler({
       label: "heightMapSamper",
       minFilter: "linear",
       magFilter: "linear",
+      // minFilter: "nearest",
+      // magFilter: "nearest",
       addressModeU: "clamp-to-edge",
       addressModeV: "clamp-to-edge",
-      mipmapFilter: "linear",
     });
 
     device.queue.writeTexture(
-      { texture: this.heightmapPre, },
-      new Float32Array(planeSubdivs**2).fill(Infinity),
-      {
-        bytesPerRow: planeSubdivs * 4,
-      },
-      [planeSubdivs,planeSubdivs]
+      { texture: this.heightmapPost, },
+      new Float32Array(w**2).fill(Infinity),
+      { bytesPerRow: w * 4 },
+      [w,w]
     );
 
     const particleCapacity = 100;
@@ -201,10 +211,10 @@ export class SheetComponent extends Component {
         // { binding: 1, resource: { buffer: this.mesh.normalsBuffer } },
         // { binding: 2, resource: { buffer: this.mesh.uvsBuffer } },
         // { binding: 3, resource: { buffer: this.uniform } },
-        { binding: 4, resource: this.heightmapPre.createView() },
-        // { binding: 5, resource: this.heightmapPost.createView() },
+        { binding: 4, resource: this.heightmapPost.createView() },
+        { binding: 5, resource: this.heightmapPre.createView() },
         // { binding: 6, resource: { buffer: this.particlesBuffer } },
-        // { binding: 7, resource: this.heightmapSampler },
+        { binding: 7, resource: this.heightmapSampler },
       ],
     });
 
@@ -260,6 +270,17 @@ export class SheetComponent extends Component {
     ]));
 
     const commandEncoder = device.createCommandEncoder();
+
+    commandEncoder.copyTextureToTexture(
+      {
+        texture: this.heightmapPost,
+      },
+      {
+        texture: this.heightmapPre,
+      },
+      [this.heightmapPre.width, this.heightmapPre.height],
+    );
+
     const passEncoder = commandEncoder.beginComputePass();
 
     passEncoder.setPipeline(this.pressPipeline);
@@ -268,7 +289,7 @@ export class SheetComponent extends Component {
 
     passEncoder.setPipeline(this.postPipeline);
     passEncoder.setBindGroup(0, this.postBindgroup);
-    passEncoder.dispatchWorkgroups(this.heightmapPre.width, this.heightmapPre.height, 1);
+    passEncoder.dispatchWorkgroups(this.heightmapPre.width/16, this.heightmapPre.height/16, 1);
 
     const count = this.mesh.positionsBuffer.size / (4 * 3);
 

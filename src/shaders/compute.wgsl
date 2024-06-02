@@ -133,14 +133,14 @@ fn get_pixel_i32(
     pos: vec2<i32>,
     counted: ptr<function, bool>,
 ) -> f32 {
-    let dims = textureDimensions(storageHeightMap);
+    let dims = textureDimensions(textureHeightMap);
     if (pos.x < 0 || pos.y < 0 || pos.x > i32(dims.x) || pos.y > i32(dims.y)) {
         *counted = false;
         return 0.;
     }
     *counted = true;
 
-    return textureLoad(storageHeightMap, vec2u(pos)).x;
+    return textureLoad(textureHeightMap, vec2u(pos), 0).x;
 }
 
 fn post_pixel(
@@ -151,33 +151,15 @@ fn post_pixel(
         return;
     }
 
-    var sum: f32 = 0.;
-    var count: f32 = 0.;
-
-    for (var dx: i32 = -1; dx <= 1; dx += 1) {
-        for (var dy: i32 = -1; dy <= 1; dy += 1) {
-            var counted: bool = false;
-            var val = 1.;
-            if dx == 0 {
-                val += 0.5;
-            }
-            if dy == 0 {
-                val += 0.5;
-            }
-            sum += get_pixel_i32(vec2i(pos) + vec2(dx, dy), &counted) * val;
-            if counted {
-                count += val;
-            }
-        }
-    }
-
-    let val = sum / count + 0.001;
+    let uv = (vec2f(pos) + 0.5) / vec2f(dims);
+    let targetUv = uv + (normalize(uv - 0.5) * -0.0003);
+    let val = sampleHeight(targetUv);
 
     textureStore(storageHeightMap, pos, vec4f(val));
 }
 
 // Make particles make an indent on the texture
-@compute @workgroup_size(1,1,1) fn post(
+@compute @workgroup_size(16,16,1) fn post(
     @builtin(global_invocation_id) global_invocation_id : vec3<u32>,
 ) {
     post_pixel(global_invocation_id.xy);
