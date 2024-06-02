@@ -225,8 +225,6 @@ export class SheetComponent extends Component {
     sphereEntity.addComponent(new ParticleComponent(sphereEntity)
       .withVelocity(velocity)
     );
-    sphereEntity.addComponent(new MassiveComponent(sphereEntity)
-      .withMass(10e9));
 
     const radius = 0.5;
     const n = 150;
@@ -261,15 +259,22 @@ export class SheetComponent extends Component {
     app.spawn(sphereEntity);
   };
 
-  for (let angle = 0; angle < Math.PI*2; angle += Math.PI / 4) {
+  const ballCount = 3;
+  for (let angle = 0; angle < Math.PI*2; angle += (Math.PI*2)/ballCount) {
     const rotate = Mat3.rotateY(angle);
-    spawnBall(rotate.mul(new Vec3(0,0,3)), rotate.mul(new Vec3(0.8,0,0)));
+    spawnBall(rotate.mul(new Vec3(0,0,3)), rotate.mul(new Vec3(1.1,0,0)));
   }
   // spawnBall(new Vec3(-5, 0, 0), new Vec3(1,0,0));
   // spawnBall(new Vec3(5, 0, 0), new Vec3(-1,0,0));
   // spawnBall(new Vec3(0, 0, -5), new Vec3(0.25,0,0.25));
   // spawnBall(new Vec3(0, 0, 5), new Vec3(-0.25,0,-0.25));
   // spawnBall(new Vec3(5, 0, 0), new Vec3(-1,0,1));
+
+  const pointMass = new Entity(app);
+  pointMass.addComponent(new TransformComponent(pointMass));
+  pointMass.addComponent(new MassiveComponent(pointMass)
+    .withMass(10e10 + 10e9));
+  app.spawn(pointMass);
 
   let planeMesh: Mesh;
   {
