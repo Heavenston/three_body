@@ -30,7 +30,7 @@ fn vertex(
     var out: VertexOut;
     out.worldPos = (instance_data.modelMatrix * position).xyz;
     out.position = (uniforms.viewProjMatrix * instance_data.modelMatrix) * position;
-    out.normal = normal;
+    out.normal = (instance_data.modelMatrix * vec4(normal, 0.)).xyz;
     out.uv = uv;
     out.color = instance_data.color;
     return out;

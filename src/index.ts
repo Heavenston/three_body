@@ -89,6 +89,8 @@ export class SheetComponent extends Component {
   public pipeline: GPUComputePipeline;
   public bindgroup: GPUBindGroup;
 
+  public heightmap: GPUTexture;
+
   constructor(
     entity: Entity,
   ) {
@@ -106,8 +108,15 @@ export class SheetComponent extends Component {
       size: 4,
     });
 
+    this.heightmap = device.createTexture({
+      format: "r32float",
+      size: [200,200],
+      usage: GPUTextureUsage.STORAGE_BINDING,
+    });
+
     this.pipeline = device.createComputePipeline({
       layout: "auto",
+      label: "sheet displace compute pipeline",
       compute: {
         module: shaderModule,
         entryPoint: "displace",
@@ -116,10 +125,13 @@ export class SheetComponent extends Component {
 
     this.bindgroup = device.createBindGroup({
       layout: this.pipeline.getBindGroupLayout(0),
+      label: "sheet bind group",
       entries: [
         { binding: 0, resource: { buffer: this.mesh.positionsBuffer } },
         { binding: 1, resource: { buffer: this.mesh.normalsBuffer } },
-        { binding: 2, resource: { buffer: this.uniform } },
+        { binding: 2, resource: { buffer: this.mesh.uvsBuffer } },
+        // { binding: 3, resource: { buffer: this.uniform } },
+        { binding: 4, resource: this.heightmap.createView() },
       ],
     });
   }
@@ -294,7 +306,8 @@ const run = async () => {
 
   const planeEntity = new Entity(app);
   planeEntity.addComponent(new TransformComponent(planeEntity));
-  planeEntity.addComponent(new RenderComponent(planeEntity, planeMesh, material));
+  planeEntity.addComponent(new RenderComponent(planeEntity, planeMesh, material)
+    .withColor(new Color(0.1,0.1,0.1,1.)));
   planeEntity.addComponent(new SheetComponent(planeEntity));
   app.spawn(planeEntity);
 
