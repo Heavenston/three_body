@@ -2,14 +2,13 @@ import { Application } from "~/src/engine/application";
 import { UserError } from "~/src/engine/usererror";
 import { Component, Entity } from "./engine/entity";
 import { CameraComponent, RenderComponent, TransformComponent } from "./engine/components";
-import { Vec2, Vec3 } from "./math/vec";
+import { Vec3 } from "./math/vec";
 import { Color } from "./math/color";
 
 import shaderSource from "bundle-text:./shaders/basic.wgsl";
 import computeShaderSource from "bundle-text:./shaders/compute.wgsl";
 import sheetBallsShaderSource from "bundle-text:./shaders/basic_plane_balls.wgsl";
 import { Mat3 } from "./math/mat";
-import { G, clamp } from "./math";
 import { Material } from "./material";
 import { Mesh } from "./engine/mesh";
 import { Renderer } from "./engine/renderer";
@@ -258,7 +257,12 @@ export class SheetComponent extends Component {
       ],
     });
 
-    this.ballMaterial = Material.fromSource(this.renderer, sheetBallsShaderSource);
+    this.ballMaterial = Material.fromSource(this.renderer, sheetBallsShaderSource, {
+      properties: [
+        { name: "modelMatrix", type: "mat4f" },
+        { name: "color", type: "vec4f" },
+      ]
+    });
     this.ballMaterial.customBindGroups.push({
       bg: device.createBindGroup({
         layout: this.ballMaterial.pipeline.getBindGroupLayout(1),
@@ -349,7 +353,12 @@ const run = async () => {
   app.spawn(camera);
   app.renderer.mainCamera = camera;
 
-  const material = Material.fromSource(app.renderer, shaderSource);
+  const material = Material.fromSource(app.renderer, shaderSource, {
+    properties: [
+      { name: "modelMatrix", type: "mat4f" },
+      { name: "color", type: "vec4f" },
+    ]
+  });
 
   let sphereMesh: Mesh;
   {
@@ -407,7 +416,7 @@ const run = async () => {
       .translate(pos)
     );
     sphereEntity.addComponent(new RenderComponent(sphereEntity, sphereMesh, material)
-      .withColor(Color.BLACK)
+      .withInstanceData("color", Color.BLACK)
     );
     sphereEntity.addComponent(new ParticleComponent(sphereEntity)
       .withVelocity(velocity)
@@ -441,7 +450,7 @@ const run = async () => {
       smallBall.addComponent(new TransformComponent(smallBall)
         .translate(smallBallPos));
       smallBall.addComponent(new RenderComponent(smallBall, smallSphereMesh, material)
-        .withColor(Color.WHITE));
+        .withInstanceData("color", Color.WHITE));
 
       sphereEntity.children.add(smallBall);
     }
@@ -454,17 +463,6 @@ const run = async () => {
     const rotate = Mat3.rotateY((balli / ballCount) * Math.PI * 2);
     spawnBall(rotate.mul(new Vec3(0,0,ballDistance)), rotate.mul(new Vec3(ballSpeed,0,0)));
   }
-  // spawnBall(new Vec3(-5, 0, 0), new Vec3(1,0,0));
-  // spawnBall(new Vec3(5, 0, 0), new Vec3(-1,0,0));
-  // spawnBall(new Vec3(0, 0, -5), new Vec3(0.25,0,0.25));
-  // spawnBall(new Vec3(0, 0, 5), new Vec3(-0.25,0,-0.25));
-  // spawnBall(new Vec3(5, 0, 0), new Vec3(-1,0,1));
-
-  // const pointMass = new Entity(app);
-  // pointMass.addComponent(new TransformComponent(pointMass));
-  // pointMass.addComponent(new MassiveComponent(pointMass)
-  //   .withMass(10e10 + 10e9));
-  // app.spawn(pointMass);
 
   const planeSize = 20;
   const planeSubdivs = 400;
@@ -490,8 +488,7 @@ const run = async () => {
   const planeEntity = new Entity(app);
   planeEntity.addComponent(new TransformComponent(planeEntity));
   planeEntity.addComponent(new RenderComponent(planeEntity, planeMesh, material)
-    // .withColor(new Color(0.1,0.1,0.1,1.))
-    .withColor(new Color(0.,0.,0.,1.))
+    .withInstanceData("color", new Color(0.,0.,0.,1.))
   );
   const sheetComp = new SheetComponent(planeEntity, planeSize, planeSubdivs);
   planeEntity.addComponent(sheetComp);
@@ -505,7 +502,7 @@ const run = async () => {
       smallBall.addComponent(new TransformComponent(smallBall)
         .translate(smallBallPos));
       smallBall.addComponent(new RenderComponent(smallBall, smallSphereMesh, sheetComp.ballMaterial)
-        .withColor(Color.WHITE));
+        .withInstanceData("color", Color.WHITE));
 
       planeEntity.children.add(smallBall);
     }

@@ -4,7 +4,7 @@ import { Mat3, Mat4, MatMut4 } from "~/src/math/mat";
 import { Vec3 } from "~/src/math/vec";
 import { Mesh } from "./mesh";
 import { InstanceGroup, Renderer } from "./renderer";
-import { Material } from "../material";
+import { InstanceData, InstanceDataPropertyValue, Material, instanceDataPropertyValueIsCorrect } from "../material";
 
 export class TransformComponent extends Component {
   #expandedAffine: Mat4 | null = null;
@@ -127,14 +127,10 @@ export class CameraComponent extends Component {
 }
 
 export class RenderComponent extends Component {
-  public readonly renderer: Renderer;
-  public color: Color = Color.BLACK;
-  public instanceGroup: InstanceGroup | null = null;
+  #instanceData: InstanceData = {};
 
-  public withColor(color: Color): this {
-    this.color = color;
-    return this;
-  }
+  public readonly renderer: Renderer;
+  public instanceGroup: InstanceGroup | null = null;
 
   constructor(
     entity: Entity,
@@ -145,9 +141,28 @@ export class RenderComponent extends Component {
     this.renderer = this.application.renderer;
   }
 
+  public get instanceData(): Readonly<InstanceData> {
+    return this.#instanceData;
+  }
+
   public get requireUpdate(): boolean {
     return this.instanceGroup === null ||
       (this.entity.components.get(TransformComponent)?.isDirty ?? false) ||
       (this.entity.parent?.components.get(RenderComponent)?.requireUpdate ?? false);
+  }
+
+  public withInstanceData(name: string, val: InstanceDataPropertyValue): this {
+    const prop = this.material.getInstanceDataLayoutProperty(name);
+    if (prop === null)
+      throw new Error(`Property '${name}' does not exist in material`);
+    if (!instanceDataPropertyValueIsCorrect(val, prop.type))
+      throw new Error("Value does not match type required by material");
+    this.#instanceData[name] = val;
+    return this;
+  }
+
+  public removeInstanceData(key: string): this {
+    delete this.#instanceData[key];
+    return this;
   }
 }

@@ -3,21 +3,15 @@ import { Entity } from "./entity";
 import { CameraComponent, RenderComponent, TransformComponent } from "./components";
 import { UserError } from "./usererror";
 import { clamp } from "../math";
-import { Mat4, MatMut4 } from "../math/mat";
-import { Material } from "../material";
+import { MatMut4 } from "../math/mat";
+import { INSTANCE_DATA_PROPERTY_TYPES_BYTE_SIZES, InstanceData, Material, instanceDataPropertyValueSerialize } from "../material";
 import { Mesh } from "./mesh";
-import { Color } from "../math/color";
-
-interface InstanceData {
-  modelMatrix: Mat4,
-  color: Color,
-}
 
 interface InstanceRenderBuffers {
   capacity: number,
 
   bindgroup: GPUBindGroup,
-  dataArray: Float32Array,
+  dataArray: ArrayBuffer,
   dataBuffer: GPUBuffer,
 }
 
@@ -25,8 +19,6 @@ export class InstanceGroup {
   #members: Set<Entity> = new Set();
   #anyDataChange: boolean = false;
   #datas: Map<Entity, InstanceData> = new Map();
-
-  public static readonly INSTANCE_DATA_SIZE = (4 * 16) + (4 * 4);
 
   public readonly renderer: Renderer;
 
@@ -37,6 +29,14 @@ export class InstanceGroup {
 
   public get members(): Readonly<Set<Entity>> {
     return this.#members;
+  }
+
+  public get instanceDataSize(): number {
+    let size = 0;
+    for (const prop of this.material.instanceDataLayout.properties) {
+      size += INSTANCE_DATA_PROPERTY_TYPES_BYTE_SIZES[prop.type];
+    }
+    return size;
   }
 
   constructor (
@@ -60,7 +60,7 @@ export class InstanceGroup {
       const buffer = this.renderer.device.createBuffer({
         label: "instance buffer",
         usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-        size: InstanceGroup.INSTANCE_DATA_SIZE * targetCapacity,
+        size: this.instanceDataSize * targetCapacity,
       });
       this.buffers = {
         capacity: targetCapacity,
@@ -72,7 +72,7 @@ export class InstanceGroup {
             { binding: 1, resource: { buffer: buffer } },
           ],
         }),
-        dataArray: new Float32Array(targetCapacity * InstanceGroup.INSTANCE_DATA_SIZE / 4),
+        dataArray: new ArrayBuffer(targetCapacity * this.instanceDataSize),
         dataBuffer: buffer,
       };
     }
@@ -95,7 +95,7 @@ export class InstanceGroup {
     this.#members.add(entity);
   }
 
-  public setEntityData(entity: Entity, data: InstanceData) {
+  public setInstanceData(entity: Entity, data: InstanceData) {
     this.#datas.set(entity, data);
     this.#anyDataChange = true;
   }
@@ -107,25 +107,30 @@ export class InstanceGroup {
 
     const { dataArray, dataBuffer, } = this.reallocIfNeeded();
 
-    let index = 0;
+    let offset = 0;
     for (const member of this.#members) {
-      const start = index * (InstanceGroup.INSTANCE_DATA_SIZE/4);
       const data = this.#datas.get(member);
       if (!data)
         continue;
 
-      dataArray.set(data.modelMatrix.transpose().vals, start);
-      dataArray.set(data.color.vals, start + 16);
-
-      index += 1;
+      for (const prop of this.material.instanceDataLayout.properties) {
+        if (data.hasOwnProperty(prop.name)) {
+          instanceDataPropertyValueSerialize(
+            data[prop.name], prop.type, dataArray, offset
+          );
+        }
+        else {
+          console.warn(`Property '${prop.name}' of type '${prop.type}' is missing for data of entity '${member}'`);
+        }
+        offset += INSTANCE_DATA_PROPERTY_TYPES_BYTE_SIZES[prop.type];
+      }
     }
 
-    const size = this.#members.size * InstanceGroup.INSTANCE_DATA_SIZE;
     this.renderer.device.queue.writeBuffer(
       dataBuffer, 0,
       dataArray, 0,
       // only copy what's actually used
-      size / 4
+      offset
     );
   }
 
@@ -284,19 +289,25 @@ export class Renderer {
       const mesh = renderComp.mesh;
       const material = renderComp.material;
 
-      const modelMatrix = worldTransform === null
-        ? transform.modelToWorld(outMat1)
-        : worldTransform.mul(transform.modelToWorld(outMat1), outMat2);
-
       if (renderComp.instanceGroup === null) {
         renderComp.instanceGroup = this.findOrCreateInstanceGroup(mesh, material);
         renderComp.instanceGroup.push(entity);
       }
 
-      renderComp.instanceGroup.setEntityData(entity, {
-        color: renderComp.color,
-        modelMatrix: modelMatrix.clone().freeze(),
-      });
+      const finalInstanceData = {...renderComp.instanceData};
+
+      if (
+        renderComp.material.getInstanceDataLayoutProperty("modelMatrix")?.type === "mat4f" &&
+        !finalInstanceData.hasOwnProperty("modelMatrix")
+      ) {
+        finalInstanceData["modelMatrix"] = (
+          worldTransform === null
+            ? transform.modelToWorld(outMat1)
+            : worldTransform.mul(transform.modelToWorld(outMat1), outMat2)
+        ).clone().freeze();
+      }
+
+      renderComp.instanceGroup.setInstanceData(entity, finalInstanceData);
     };
     const updateRec = (entity: Entity, worldTransform: MatMut4 | null, forceUpdate: boolean) => {
       const require = entity.components.get(RenderComponent)?.requireUpdate ?? false;
