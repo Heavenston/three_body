@@ -4,6 +4,8 @@ fn lerp(fr: f32, to: f32, t: f32) -> f32 {
     return fr * (1. - t) + to * t;
 }
 
+const SHEET_BASE_HEIGHT: f32 = 0.25;
+
 struct Uniforms {
     totalTime: f32,
     planeSize: f32,
@@ -114,7 +116,7 @@ fn press_pixel(
         else {
             height = -sqrt((radius * radius) - (dist * dist));
         }
-        height = min(height, 0.);
+        height = min(height, SHEET_BASE_HEIGHT);
 
         let previousHeight = textureLoad(storageHeightMap, pos).x;
         height = min(height, previousHeight);
