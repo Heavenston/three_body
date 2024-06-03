@@ -119,9 +119,6 @@ export class InstanceGroup {
             data[prop.name], prop.type, dataArray, offset
           );
         }
-        else {
-          console.warn(`Property '${prop.name}' of type '${prop.type}' is missing for data of entity '${member}'`);
-        }
         offset += INSTANCE_DATA_PROPERTY_TYPES_BYTE_SIZES[prop.type];
       }
     }

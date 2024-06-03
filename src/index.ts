@@ -6,6 +6,7 @@ import { Vec3 } from "./math/vec";
 import { Color } from "./math/color";
 
 import shaderSource from "bundle-text:./shaders/basic.wgsl";
+import ballShaderSource from "bundle-text:./shaders/basic_ball.wgsl";
 import computeShaderSource from "bundle-text:./shaders/compute.wgsl";
 import sheetBallsShaderSource from "bundle-text:./shaders/basic_plane_balls.wgsl";
 import { Mat3 } from "./math/mat";
@@ -359,6 +360,14 @@ const run = async () => {
       { name: "color", type: "vec4f" },
     ]
   });
+  const ballMaterial = Material.fromSource(app.renderer, ballShaderSource, {
+    properties: [
+      { name: "modelMatrix", type: "mat4f" },
+      { name: "color", type: "vec4f" },
+      { name: "normal", type: "vec3f" },
+      { name: "padding", type: "f32" },
+    ]
+  });
 
   let sphereMesh: Mesh;
   {
@@ -445,12 +454,16 @@ const run = async () => {
 
       const smallBallPos = sphericalToCartesian(radius, theta, phi)
         .as_vec3();
+      const normal = sphericalToCartesian(-1, theta, phi)
+        .normalize().as_vec3();
 
       const smallBall = new Entity(app);
       smallBall.addComponent(new TransformComponent(smallBall)
         .translate(smallBallPos));
-      smallBall.addComponent(new RenderComponent(smallBall, smallSphereMesh, material)
-        .withInstanceData("color", Color.WHITE));
+      smallBall.addComponent(new RenderComponent(smallBall, smallSphereMesh, ballMaterial)
+        .withInstanceData("color", Color.WHITE)
+        .withInstanceData("normal", normal)
+      );
 
       sphereEntity.children.add(smallBall);
     }
