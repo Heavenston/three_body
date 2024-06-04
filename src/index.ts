@@ -124,6 +124,7 @@ export class SheetComponent extends Component {
     entity: Entity,
     public readonly planeSize: number,
     public readonly planeSubdivs: number,
+    textureSize: number,
   ) {
     super(entity);
     this.mesh = entity.components.unwrap_get(RenderComponent).mesh;
@@ -139,12 +140,10 @@ export class SheetComponent extends Component {
       size: 12,
     });
 
-    const w = planeSubdivs;
-
     this.heightmapPre = device.createTexture({
       label: "heightMap pre",
       format: "r32float",
-      size: [w,w],
+      size: [textureSize,textureSize],
       usage:
         GPUTextureUsage.COPY_DST |
         GPUTextureUsage.STORAGE_BINDING |
@@ -154,7 +153,7 @@ export class SheetComponent extends Component {
     this.heightmapPost = device.createTexture({
       label: "heightMap post",
       format: "r32float",
-      size: [w,w],
+      size: [textureSize,textureSize],
       usage:
         GPUTextureUsage.COPY_SRC |
         GPUTextureUsage.COPY_DST |
@@ -174,9 +173,9 @@ export class SheetComponent extends Component {
 
     device.queue.writeTexture(
       { texture: this.heightmapPost, },
-      new Float32Array(w**2).fill(Infinity),
-      { bytesPerRow: w * 4 },
-      [w,w]
+      new Float32Array(textureSize**2).fill(Infinity),
+      { bytesPerRow: textureSize * 4 },
+      [textureSize,textureSize]
     );
 
     const particleCapacity = 100;
@@ -478,7 +477,8 @@ const run = async () => {
   }
 
   const planeSize = 20;
-  const planeSubdivs = 400;
+  const planeSubdivs = 200;
+  const planeTextureSize = 400;
 
   let planeMesh: Mesh;
   {
@@ -503,7 +503,9 @@ const run = async () => {
   planeEntity.addComponent(new RenderComponent(planeEntity, planeMesh, material)
     .withInstanceData("color", new Color(0.,0.,0.,1.))
   );
-  const sheetComp = new SheetComponent(planeEntity, planeSize, planeSubdivs);
+  const sheetComp = new SheetComponent(
+    planeEntity, planeSize, planeSubdivs, planeTextureSize
+  );
   planeEntity.addComponent(sheetComp);
 
   const ballSep = 0.18;

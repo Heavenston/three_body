@@ -127,6 +127,7 @@ export class CameraComponent extends Component {
 }
 
 export class RenderComponent extends Component {
+  #dataUpdated: boolean = false;
   #instanceData: InstanceData = {};
 
   public readonly renderer: Renderer;
@@ -141,12 +142,17 @@ export class RenderComponent extends Component {
     this.renderer = this.application.renderer;
   }
 
+  public override afterUpdate(): void {
+    this.#dataUpdated = false;
+  }
+
   public get instanceData(): Readonly<InstanceData> {
     return this.#instanceData;
   }
 
   public get requireUpdate(): boolean {
-    return this.instanceGroup === null ||
+    return this.#dataUpdated ||
+      this.instanceGroup === null ||
       (this.entity.components.get(TransformComponent)?.isDirty ?? false) ||
       (this.entity.parent?.components.get(RenderComponent)?.requireUpdate ?? false);
   }
@@ -157,11 +163,14 @@ export class RenderComponent extends Component {
       throw new Error(`Property '${name}' does not exist in material`);
     if (!instanceDataPropertyValueIsCorrect(val, prop.type))
       throw new Error("Value does not match type required by material");
+
+    this.#dataUpdated = true;
     this.#instanceData[name] = val;
     return this;
   }
 
   public removeInstanceData(key: string): this {
+    this.#dataUpdated = true;
     delete this.#instanceData[key];
     return this;
   }
