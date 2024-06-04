@@ -5,10 +5,10 @@ import { CameraComponent, RenderComponent, TransformComponent } from "./engine/c
 import { Vec3 } from "./math/vec";
 import { Color } from "./math/color";
 
-import shaderSource from "bundle-text:./shaders/basic.wgsl";
-import ballShaderSource from "bundle-text:./shaders/basic_ball.wgsl";
-import computeShaderSource from "bundle-text:./shaders/compute.wgsl";
-import sheetBallsShaderSource from "bundle-text:./shaders/basic_plane_balls.wgsl";
+import shaderSource from "bundle-text:./shaders/shading/basic.wgsl";
+import ballShaderSource from "bundle-text:./shaders/shading/basic_ball.wgsl";
+import computeShaderSource from "bundle-text:./shaders/compute/compute.wgsl";
+import sheetBallsShaderSource from "bundle-text:./shaders/shading/basic_plane_balls.wgsl";
 import { Mat3 } from "./math/mat";
 import { Material } from "./material";
 import { Mesh } from "./engine/mesh";
