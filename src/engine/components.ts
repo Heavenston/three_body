@@ -128,6 +128,7 @@ export class CameraComponent extends Component {
 
 export class RenderComponent extends Component {
   #dataUpdated: boolean = false;
+  #visible: boolean = true;
   #instanceData: InstanceData = {};
 
   public readonly renderer: Renderer;
@@ -148,6 +149,16 @@ export class RenderComponent extends Component {
 
   public get instanceData(): Readonly<InstanceData> {
     return this.#instanceData;
+  }
+
+  public get visible(): boolean {
+    return this.#visible;
+  }
+
+  public set visible(val: boolean) {
+    if (val !== this.#visible)
+      this.#dataUpdated = true;
+    this.#visible = val;
   }
 
   public get requireUpdate(): boolean {
@@ -172,6 +183,12 @@ export class RenderComponent extends Component {
   public removeInstanceData(key: string): this {
     this.#dataUpdated = true;
     delete this.#instanceData[key];
+    return this;
+  }
+
+  public withVisible(visible: boolean): this {
+    this.#dataUpdated = true;
+    this.visible = visible;
     return this;
   }
 }

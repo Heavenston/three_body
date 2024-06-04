@@ -100,6 +100,11 @@ export class InstanceGroup {
     this.#anyDataChange = true;
   }
 
+  public removeInstanceData(entity: Entity) {
+    this.#datas.delete(entity);
+    this.#anyDataChange = true;
+  }
+
   public upload() {
     if (this.buffers && !this.#anyDataChange)
       return;
@@ -289,6 +294,11 @@ export class Renderer {
       if (renderComp.instanceGroup === null) {
         renderComp.instanceGroup = this.findOrCreateInstanceGroup(mesh, material);
         renderComp.instanceGroup.push(entity);
+      }
+
+      if (!renderComp.visible) {
+        renderComp.instanceGroup.removeInstanceData(entity);
+        return;
       }
 
       const finalInstanceData = {...renderComp.instanceData};
