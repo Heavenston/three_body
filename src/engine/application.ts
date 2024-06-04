@@ -52,7 +52,11 @@ export class Application {
 
         if (animationFrame != null)
           cancelAnimationFrame(animationFrame);
-        if (!(window as any).stopNow)
+        if (
+          !(window as any).stopNow &&
+          !location.hash.includes("stopNow") &&
+          !(location.hash.includes("stop3s") && time > 3_000)
+      )
           animationFrame = requestAnimationFrame(frame);
       }
       catch(e) {
