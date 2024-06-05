@@ -631,10 +631,13 @@ const run = async () => {
   );
   planeEntity.addComponent(sheetComp);
 
-  const ballSep = 0.15;
+  const ballSep = 0.1;
   for (let x = -planeSize/2; x < planeSize/2; x += ballSep) {
     for (let y = -planeSize/2; y < planeSize/2; y += ballSep) {
       const smallBallPos = new Vec3(x, 0, y);
+
+      if (smallBallPos.norm() > planeSize/2.5)
+        continue;
 
       const smallBall = new Entity(app);
       smallBall.addComponent(new TransformComponent(smallBall)

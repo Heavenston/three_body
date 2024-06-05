@@ -4,7 +4,7 @@ fn lerp(fr: f32, to: f32, t: f32) -> f32 {
     return fr * (1. - t) + to * t;
 }
 
-const LIGHT_POSITION: vec3f = vec3f(0., 1.5, 0.);
+const LIGHT_POSITION: vec3f = vec3f(0., 1., 0.);
 const SHEET_BASE_HEIGHT: f32 = 0.25;
 
 struct Uniforms {
@@ -57,6 +57,11 @@ fn sampleHeight(uv: vec2f) -> f32 {
     // let actual = vec2(u32(uv.x * f32(dims.x)), u32(uv.y * f32(dims.y)));
     // return textureLoad(storageHeightMap, actual).x;
     return textureSampleLevel(textureHeightMap, samplerHeightMap, uv, 0.).r;
+}
+
+fn sampleHeightPos(pos: vec3f) -> f32 {
+    let uv = (pos.xz - vec2f(uniforms.planeSize / 2.)) / uniforms.planeSize;
+    return sampleHeight(uv);
 }
 
 fn displace_vertex(
@@ -202,10 +207,8 @@ fn raySegmentIntersectsSphere(rayOrigin: vec3f, rayTarget: vec3f, sphereCenter: 
 fn lighting_for(i: u32) {
     var pos = ballPositions[i];
 
-    pos.y = sampleHeight(pos.xz / vec2f(uniforms.planeSize));
+    pos.y = sampleHeightPos(pos);
     
-    let to_light = pos - LIGHT_POSITION;
-
     for (var iparticle: u32 = 0; iparticle < uniforms.particleCount; iparticle++) {
         let particle: Particle = particles[iparticle];
         if (raySegmentIntersectsSphere(pos, LIGHT_POSITION, particle.position, particle.radius)) {
@@ -213,8 +216,10 @@ fn lighting_for(i: u32) {
             return;
         }
     }
-    
-    ballLighting[i] = 2. / pow(length(pos - LIGHT_POSITION), 1.);
+
+    let distance_to_light = distance(pos, LIGHT_POSITION);
+    let f = distance_to_light / (uniforms.planeSize / 2.);
+    ballLighting[i] = pow(clamp(1. - f, 0., 1.), 1.8);
 }
 
 // Compute light level for each balls
