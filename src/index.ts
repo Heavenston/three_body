@@ -95,24 +95,29 @@ export class LookAroundComponent extends Component {
   }
 }
 
+type SheetPipeline = {
+  pipeline: GPUComputePipeline,
+  bindgroup: GPUBindGroup,
+};
+type SheetPipelines = {
+  press: SheetPipeline,
+  post: SheetPipeline,
+  displace: SheetPipeline,
+};
+
 export class SheetComponent extends Component {
   public readonly renderer: Renderer;
   public mesh: Mesh;
 
   public ballMaterial: Material;
 
+  public computeShaderModule: GPUShaderModule;
+  
   public uniform: GPUBuffer;
   public particlesBuffer: GPUBuffer;
   public particlesArray: Float32Array;
   
-  public pressPipeline: GPUComputePipeline;
-  public pressBindgroup: GPUBindGroup;
-  
-  public postPipeline: GPUComputePipeline;
-  public postBindgroup: GPUBindGroup;
-
-  public displacePipeline: GPUComputePipeline;
-  public displaceBindgroup: GPUBindGroup;
+  public pipelines: SheetPipelines | null = null;
 
   public heightmapPre: GPUTexture;
   public heightmapPost: GPUTexture;
@@ -131,7 +136,7 @@ export class SheetComponent extends Component {
     this.renderer = entity.application.renderer;
     const device = this.renderer.device;
 
-    const shaderModule = device.createShaderModule({
+    this.computeShaderModule = device.createShaderModule({
       code: computeShaderSource,
     });
 
@@ -185,17 +190,29 @@ export class SheetComponent extends Component {
       usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE,
     });
 
-    this.pressPipeline = device.createComputePipeline({
+    this.ballMaterial = Material.fromSource(this.renderer, sheetBallsShaderSource, {
+      properties: [
+        { name: "modelMatrix", type: "mat4f" },
+        { name: "color", type: "vec4f" },
+      ]
+    });
+  }
+
+  private updatePipelines() {
+    const device = this.renderer.device;
+
+    const pipelines: Partial<SheetPipelines> = {};
+
+    const pressPipeline = device.createComputePipeline({
       layout: "auto",
       label: "sheet press compute pipeline",
       compute: {
-        module: shaderModule,
+        module: this.computeShaderModule,
         entryPoint: "press",
       }
     });
-
-    this.pressBindgroup = device.createBindGroup({
-      layout: this.pressPipeline.getBindGroupLayout(0),
+    const pressBindgroup = device.createBindGroup({
+      layout: pressPipeline.getBindGroupLayout(0),
       label: "press sheet bind group",
       entries: [
         // { binding: 0, resource: { buffer: this.mesh.positionsBuffer } },
@@ -208,18 +225,21 @@ export class SheetComponent extends Component {
         // { binding: 7, resource: this.heightmapSampler },
       ],
     });
+    pipelines.press = {
+      bindgroup: pressBindgroup,
+      pipeline: pressPipeline,
+    };
 
-    this.postPipeline = device.createComputePipeline({
+    const postPipeline = device.createComputePipeline({
       layout: "auto",
       label: "sheet post compute pipeline",
       compute: {
-        module: shaderModule,
+        module: this.computeShaderModule,
         entryPoint: "post",
       }
     });
-
-    this.postBindgroup = device.createBindGroup({
-      layout: this.postPipeline.getBindGroupLayout(0),
+    const postBindgroup = device.createBindGroup({
+      layout: postPipeline.getBindGroupLayout(0),
       label: "post sheet bind group",
       entries: [
         // { binding: 0, resource: { buffer: this.mesh.positionsBuffer } },
@@ -232,18 +252,21 @@ export class SheetComponent extends Component {
         { binding: 7, resource: this.heightmapSampler },
       ],
     });
+    pipelines.post = {
+      pipeline: postPipeline,
+      bindgroup: postBindgroup,
+    };
 
-    this.displacePipeline = device.createComputePipeline({
+    const displacePipeline = device.createComputePipeline({
       layout: "auto",
       label: "sheet displace compute pipeline",
       compute: {
-        module: shaderModule,
+        module: this.computeShaderModule,
         entryPoint: "displace",
       }
     });
-
-    this.displaceBindgroup = device.createBindGroup({
-      layout: this.displacePipeline.getBindGroupLayout(0),
+    const displaceBindgroup = device.createBindGroup({
+      layout: displacePipeline.getBindGroupLayout(0),
       label: "displace sheet bind group",
       entries: [
         { binding: 0, resource: { buffer: this.mesh.positionsBuffer } },
@@ -256,14 +279,12 @@ export class SheetComponent extends Component {
         { binding: 7, resource: this.heightmapSampler },
       ],
     });
+    pipelines.displace = {
+      pipeline: displacePipeline,
+      bindgroup: displaceBindgroup,
+    };
 
-    this.ballMaterial = Material.fromSource(this.renderer, sheetBallsShaderSource, {
-      properties: [
-        { name: "modelMatrix", type: "mat4f" },
-        { name: "color", type: "vec4f" },
-      ]
-    });
-    this.ballMaterial.customBindGroups.push({
+    this.ballMaterial.customBindGroups = [{
       bg: device.createBindGroup({
         layout: this.ballMaterial.pipeline.getBindGroupLayout(1),
         entries: [
@@ -272,7 +293,9 @@ export class SheetComponent extends Component {
         ]
       }),
       target: 1,
-    });
+    }];
+
+    this.pipelines = pipelines as SheetPipelines;
   }
 
   public override update(): void {
@@ -301,6 +324,12 @@ export class SheetComponent extends Component {
       particleCount,
     ]));
 
+    if (!this.pipelines)
+      this.updatePipelines();
+    const pipelines = this.pipelines;
+    if (!pipelines)
+      throw new Error("no pipelines?");
+
     const commandEncoder = device.createCommandEncoder();
 
     commandEncoder.copyTextureToTexture(
@@ -315,18 +344,18 @@ export class SheetComponent extends Component {
 
     const passEncoder = commandEncoder.beginComputePass();
 
-    passEncoder.setPipeline(this.pressPipeline);
-    passEncoder.setBindGroup(0, this.pressBindgroup);
+    passEncoder.setPipeline(pipelines.press.pipeline);
+    passEncoder.setBindGroup(0, pipelines.press.bindgroup);
     passEncoder.dispatchWorkgroups(this.heightmapPre.width/16, this.heightmapPre.height/16, 1);
 
-    passEncoder.setPipeline(this.postPipeline);
-    passEncoder.setBindGroup(0, this.postBindgroup);
+    passEncoder.setPipeline(pipelines.post.pipeline);
+    passEncoder.setBindGroup(0, pipelines.post.bindgroup);
     passEncoder.dispatchWorkgroups(this.heightmapPre.width/16, this.heightmapPre.height/16, 1);
 
     const count = this.mesh.positionsBuffer.size / (4 * 3);
 
-    passEncoder.setPipeline(this.displacePipeline);
-    passEncoder.setBindGroup(0, this.displaceBindgroup);
+    passEncoder.setPipeline(pipelines.displace.pipeline);
+    passEncoder.setBindGroup(0, pipelines.displace.bindgroup);
     passEncoder.dispatchWorkgroups((count / 3) / 64, 1, 1);
 
     passEncoder.end();
