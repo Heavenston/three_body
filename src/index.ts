@@ -102,6 +102,7 @@ type SheetPipeline = {
 type SheetPipelines = {
   press: SheetPipeline,
   post: SheetPipeline,
+  ballLighting: SheetPipeline,
   displace: SheetPipeline,
 };
 
@@ -116,6 +117,10 @@ export class SheetComponent extends Component {
   public uniform: GPUBuffer;
   public particlesBuffer: GPUBuffer;
   public particlesArray: Float32Array;
+
+  public ballList: Readonly<Entity[]> = [];
+  public ballPositionsBuffer: GPUBuffer;
+  public ballLightingBuffer: GPUBuffer;
   
   public pipelines: SheetPipelines | null = null;
 
@@ -142,7 +147,7 @@ export class SheetComponent extends Component {
 
     this.uniform = device.createBuffer({
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-      size: 12,
+      size: 4 * 4,
     });
 
     this.heightmapPre = device.createTexture({
@@ -190,12 +195,65 @@ export class SheetComponent extends Component {
       usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE,
     });
 
+    this.ballPositionsBuffer = device.createBuffer({
+      label: "ball lighting buffer",
+      size: 0,
+      usage: GPUBufferUsage.STORAGE,
+    });
+    this.ballLightingBuffer = device.createBuffer({
+      label: "ball lighting buffer",
+      size: 0,
+      usage: GPUBufferUsage.STORAGE,
+    });
+
     this.ballMaterial = Material.fromSource(this.renderer, sheetBallsShaderSource, {
       properties: [
         { name: "modelMatrix", type: "mat4f" },
         { name: "color", type: "vec4f" },
+        { name: "ballIndex", type: "u32" },
+        { name: "pad1", type: "u32" },
+        { name: "pad2", type: "u32" },
+        { name: "pad3", type: "u32" },
       ]
     });
+  }
+
+  public override start(): void {
+    const device = this.renderer.device;
+
+    this.ballList = [...this.entity.children];
+
+    this.ballList.forEach((ball, i) => {
+      ball.components.unwrap_get(RenderComponent)
+        .withInstanceData("ballIndex", i);
+    });
+
+    this.ballLightingBuffer.destroy();
+    this.ballLightingBuffer = device.createBuffer({
+      label: "ball lighting buffer",
+      size: 4 * this.ballList.length,
+      usage: GPUBufferUsage.STORAGE,
+    });
+    this.ballPositionsBuffer.destroy();
+    this.ballPositionsBuffer = device.createBuffer({
+      label: "ball positions buffer",
+      size: 4 * 4 * this.ballList.length,
+      usage: GPUBufferUsage.STORAGE,
+      mappedAtCreation: true,
+    });
+    const mapped = this.ballPositionsBuffer.getMappedRange();
+    const array = new Float32Array(mapped);
+    let i = 0;
+    for (const ball of this.ballList) {
+      const trans = ball.components.unwrap_get(TransformComponent);
+      array[i++] = trans.translation.x;
+      array[i++] = trans.translation.y;
+      array[i++] = trans.translation.z;
+      // padding
+      i++;
+    }
+    this.ballPositionsBuffer.unmap();
+    this.pipelines = null;
   }
 
   private updatePipelines() {
@@ -257,6 +315,35 @@ export class SheetComponent extends Component {
       bindgroup: postBindgroup,
     };
 
+    const ballLightingPipeline = device.createComputePipeline({
+      layout: "auto",
+      label: "sheet lighting compute pipeline",
+      compute: {
+        module: this.computeShaderModule,
+        entryPoint: "lighting",
+      }
+    });
+    const ballLightingBindgroup = device.createBindGroup({
+      layout: ballLightingPipeline.getBindGroupLayout(0),
+      label: "lighting sheet bind group",
+      entries: [
+        // { binding: 0, resource: { buffer: this.mesh.positionsBuffer } },
+        // { binding: 1, resource: { buffer: this.mesh.normalsBuffer } },
+        // { binding: 2, resource: { buffer: this.mesh.uvsBuffer } },
+        { binding: 3, resource: { buffer: this.uniform } },
+        // { binding: 4, resource: this.heightmapPre.createView() },
+        // { binding: 5, resource: this.heightmapPost.createView() },
+        // { binding: 6, resource: { buffer: this.particlesBuffer } },
+        // { binding: 7, resource: this.heightmapSampler },
+        { binding: 8, resource: { buffer: this.ballPositionsBuffer } },
+        { binding: 9, resource: { buffer: this.ballLightingBuffer } },
+      ],
+    });
+    pipelines.ballLighting = {
+      pipeline: ballLightingPipeline,
+      bindgroup: ballLightingBindgroup,
+    };
+
     const displacePipeline = device.createComputePipeline({
       layout: "auto",
       label: "sheet displace compute pipeline",
@@ -290,6 +377,7 @@ export class SheetComponent extends Component {
         entries: [
           { binding: 0, resource: this.heightmapPost.createView() },
           { binding: 1, resource: this.heightmapSampler },
+          { binding: 2, resource: { buffer: this.ballLightingBuffer } },
         ]
       }),
       target: 1,
@@ -322,6 +410,7 @@ export class SheetComponent extends Component {
     ]));
     device.queue.writeBuffer(this.uniform, 8, new Uint32Array([
       particleCount,
+      this.ballList.length,
     ]));
 
     if (!this.pipelines)
@@ -351,6 +440,10 @@ export class SheetComponent extends Component {
     passEncoder.setPipeline(pipelines.post.pipeline);
     passEncoder.setBindGroup(0, pipelines.post.bindgroup);
     passEncoder.dispatchWorkgroups(this.heightmapPre.width/16, this.heightmapPre.height/16, 1);
+
+    passEncoder.setPipeline(pipelines.ballLighting.pipeline);
+    passEncoder.setBindGroup(0, pipelines.ballLighting.bindgroup);
+    passEncoder.dispatchWorkgroups(1);
 
     const count = this.mesh.positionsBuffer.size / (4 * 3);
 

@@ -1,6 +1,7 @@
 struct InstanceData {
     modelMatrix: mat4x4f,
     color: vec4f,
+    ballIndex: u32,
 }
 
 struct Uniforms {
@@ -13,6 +14,7 @@ const LIGHT_POSITION: vec3f = vec3f(0., 1.5, 0.);
 @group(0) @binding(1) var<storage, read> instances: array<InstanceData>;
 @group(1) @binding(0) var textureHeightMap: texture_2d<f32>;
 @group(1) @binding(1) var samplerHeightMap: sampler;
+@group(1) @binding(2) var<storage, read> ballLighting: array<f32>;
 
 struct VertexOut {
     @builtin(position) position: vec4f,
@@ -33,11 +35,23 @@ fn vertex(
 
     let actual_pos = instance_data.modelMatrix * vec4f(0., 0., 0., 1.);
 
+    let lighting = ballLighting[instance_data.ballIndex];
+    let scale: f32 = clamp(lighting, 0., 1.);
+    let scaling: mat4x4f = mat4x4f(
+        scale, 0., 0., 0.,
+        0., scale, 0., 0.,
+        0., 0., scale, 0.,
+        0., 0., 0.,    1.,
+    );
+
     var out: VertexOut;
-    out.worldPos = (instance_data.modelMatrix * position).xyz;
+
+    out.worldPos = (instance_data.modelMatrix * scaling * position).xyz;
     let plane_uv = (actual_pos.xz + 10.) / 20.;
     out.worldPos.y += textureSampleLevel(textureHeightMap, samplerHeightMap, plane_uv, 0.).r;
+
     out.position = uniforms.viewProjMatrix * vec4f(out.worldPos, 1.);
+
     out.normal = (instance_data.modelMatrix * vec4(normal, 0.)).xyz;
     out.uv = uv;
     out.color = instance_data.color;

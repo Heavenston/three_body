@@ -5,6 +5,7 @@ import { Vec2, Vec3, Vec4 } from "./math/vec";
 
 export type InstanceDataPropertyTypeName2Type = {
   "f32": number,
+  "u32": number,
   "vec2f": Vec2 | [number, number],
   "vec3f": Vec3 | [number, number, number],
   "vec4f": Vec4 | Color | [number, number, number, number],
@@ -31,6 +32,7 @@ export const INSTANCE_DATA_PROPERTY_TYPES_BYTE_SIZES: {
   [key in keyof InstanceDataPropertyTypeName2Type]: number
 } = {
   "f32": 4,
+  "u32": 4,
   "vec2f": 4*2,
   "vec3f": 4*3,
   "vec4f": 4*4,
@@ -43,6 +45,8 @@ export function instanceDataPropertyValueIsCorrect<T extends InstanceDataPropert
 ): value is InstanceDataPropertyTypeName2Type[T] {
   switch (type) {
   case "f32":
+    return typeof value === "number";
+  case "u32":
     return typeof value === "number";
   case "vec2f":
     return value instanceof Vec2 ||
@@ -70,12 +74,18 @@ export function instanceDataPropertyValueSerialize(
   byteOffset: number,
 ): void {
   const floats = new Float32Array(target, byteOffset);
+  const u32s = new Uint32Array(target, byteOffset);
 
   switch (type) {
   case "f32":
     if (!instanceDataPropertyValueIsCorrect(value, type))
       throw new Error("Invalid property value");
     floats[0] = value;
+    break;
+  case "u32":
+    if (!instanceDataPropertyValueIsCorrect(value, type))
+      throw new Error("Invalid property value");
+    u32s[0] = value;
     break;
   case "vec2f":
   case "vec3f":

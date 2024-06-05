@@ -10,6 +10,7 @@ struct Uniforms {
     totalTime: f32,
     planeSize: f32,
     particleCount: u32,
+    ballCount: u32,
 }
 
 struct Particle {
@@ -25,6 +26,8 @@ struct Particle {
 @group(0) @binding(5) var textureHeightMap: texture_2d<f32>;
 @group(0) @binding(6) var<storage, read> particles: array<Particle>;
 @group(0) @binding(7) var samplerHeightMap: sampler;
+@group(0) @binding(8) var<storage, read> ballPositions: array<vec3f>;
+@group(0) @binding(9) var<storage, read_write> ballLighting: array<f32>;
 
 fn getPos(i: u32) -> vec3f {
     return vec3f(positions[i*3], positions[i*3+1], positions[i*3+2]);
@@ -163,9 +166,18 @@ fn post_pixel(
     textureStore(storageHeightMap, pos, vec4f(val));
 }
 
-// Make particles make an indent on the texture
+// Post processing of height map
 @compute @workgroup_size(16,16,1) fn post(
     @builtin(global_invocation_id) global_invocation_id : vec3<u32>,
 ) {
     post_pixel(global_invocation_id.xy);
+}
+
+// Compute light level for each balls
+@compute @workgroup_size(64,1,1) fn lighting(
+    @builtin(global_invocation_id) global_invocation_id : vec3<u32>,
+) {
+    for (var i: u32 = 0; i < uniforms.ballCount; i++) {
+        ballLighting[i] = (ballPositions[i].x + uniforms.planeSize/2.) / uniforms.planeSize;
+    }
 }
