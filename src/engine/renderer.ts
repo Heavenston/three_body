@@ -81,6 +81,9 @@ export class InstanceGroup {
   }
 
   public prune() {
+    // disabled because useless and performance hit
+    if (5 === 5)
+      return;
     this.#members = new Set([...this.#members].filter(member => {
       if (!member.isSpawned)
         return false;
