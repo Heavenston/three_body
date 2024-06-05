@@ -8,7 +8,7 @@ struct Uniforms {
     viewProjMatrix: mat4x4f,
 };
 
-const LIGHT_POSITION: vec3f = vec3f(0., 1.5, 0.);
+const LIGHT_POSITION: vec3f = vec3f(0., 1., 0.);
 
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
 @group(0) @binding(1) var<storage, read> instances: array<InstanceData>;

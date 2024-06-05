@@ -223,17 +223,6 @@ export class SheetComponent extends Component {
 
     this.ballList = [...this.entity.children];
 
-    this.ballList.forEach((ball, i) => {
-      ball.components.unwrap_get(RenderComponent)
-        .withInstanceData("ballIndex", i);
-    });
-
-    this.ballLightingBuffer.destroy();
-    this.ballLightingBuffer = device.createBuffer({
-      label: "ball lighting buffer",
-      size: 4 * this.ballList.length,
-      usage: GPUBufferUsage.STORAGE,
-    });
     this.ballPositionsBuffer.destroy();
     this.ballPositionsBuffer = device.createBuffer({
       label: "ball positions buffer",
@@ -243,16 +232,22 @@ export class SheetComponent extends Component {
     });
     const mapped = this.ballPositionsBuffer.getMappedRange();
     const array = new Float32Array(mapped);
-    let i = 0;
-    for (const ball of this.ballList) {
+    this.ballList.forEach((ball, i) => {
+      ball.components.unwrap_get(RenderComponent)
+        .withInstanceData("ballIndex", i);
       const trans = ball.components.unwrap_get(TransformComponent);
-      array[i++] = trans.translation.x;
-      array[i++] = trans.translation.y;
-      array[i++] = trans.translation.z;
-      // padding
-      i++;
-    }
+      array[i*4+0] = trans.translation.x;
+      array[i*4+1] = trans.translation.y;
+      array[i*4+2] = trans.translation.z;
+    });
     this.ballPositionsBuffer.unmap();
+
+    this.ballLightingBuffer.destroy();
+    this.ballLightingBuffer = device.createBuffer({
+      label: "ball lighting buffer",
+      size: 4 * this.ballList.length,
+      usage: GPUBufferUsage.STORAGE,
+    });
     this.pipelines = null;
   }
 
@@ -358,7 +353,7 @@ export class SheetComponent extends Component {
         // { binding: 1, resource: { buffer: this.mesh.normalsBuffer } },
         // { binding: 2, resource: { buffer: this.mesh.uvsBuffer } },
         { binding: 3, resource: { buffer: this.uniform } },
-        // { binding: 4, resource: this.heightmapPre.createView() },
+        // { binding: 5, resource: this.heightmapPre.createView() },
         { binding: 5, resource: this.heightmapPost.createView() },
         { binding: 6, resource: { buffer: this.particlesBuffer } },
         { binding: 7, resource: this.heightmapSampler },

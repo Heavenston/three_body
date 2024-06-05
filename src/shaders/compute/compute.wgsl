@@ -60,7 +60,8 @@ fn sampleHeight(uv: vec2f) -> f32 {
 }
 
 fn sampleHeightPos(pos: vec3f) -> f32 {
-    let uv = (pos.xz - vec2f(uniforms.planeSize / 2.)) / uniforms.planeSize;
+    // let uv = (pos.xz - vec2f(uniforms.planeSize / 2.)) / vec2f(uniforms.planeSize);
+    let uv = (pos.xz + vec2f(uniforms.planeSize / 2.)) / vec2f(uniforms.planeSize);
     return sampleHeight(uv);
 }
 
@@ -204,22 +205,51 @@ fn raySegmentIntersectsSphere(rayOrigin: vec3f, rayTarget: vec3f, sphereCenter: 
 
     return false;
 }
-fn lighting_for(i: u32) {
-    var pos = ballPositions[i];
 
-    pos.y = sampleHeightPos(pos);
-    
+fn lighting_at(pos: vec3f) -> f32 {
     for (var iparticle: u32 = 0; iparticle < uniforms.particleCount; iparticle++) {
         let particle: Particle = particles[iparticle];
         if (raySegmentIntersectsSphere(pos, LIGHT_POSITION, particle.position, particle.radius)) {
-            ballLighting[i] = 0.;
-            return;
+            return 0.;
         }
     }
 
-    let distance_to_light = distance(pos, LIGHT_POSITION);
+    let step_length = 0.1;
+    let to_light = LIGHT_POSITION - pos;
+    let distance_to_light = length(to_light);
+    let light_dir = to_light / distance_to_light;
+    let max_steps = min(1000, u32(distance_to_light / step_length));
+
+    var current_pos = pos;
+    for (var steps: u32 = 0; steps < max_steps; steps++) {
+        current_pos += light_dir * step_length;
+        let nh = sampleHeightPos(current_pos);
+        let diff = current_pos.y - nh;
+        if diff > 0. {
+            continue;
+        }
+
+        return 0.;
+    }
+
     let f = distance_to_light / (uniforms.planeSize / 2.);
-    ballLighting[i] = pow(clamp(1. - f, 0., 1.), 1.8);
+    return pow(1. - f, 1.8);
+}
+
+fn lighting_for(i: u32) {
+    let pos = vec3f(
+        ballPositions[i].x,
+        sampleHeightPos(ballPositions[i]),
+        ballPositions[i].z
+    );
+
+    var sum = 0.;
+    for (var dx: i32 = -2; dx <= 2; dx++) {
+        for (var dy: i32 = -2; dy <= 2; dy++) {
+            sum += lighting_at(pos + vec3f(f32(dx) * 0.05, 0., f32(dy) * 0.05));
+        }
+    }
+    ballLighting[i] = sum / 25.;
 }
 
 // Compute light level for each balls

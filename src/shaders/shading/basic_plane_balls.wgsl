@@ -8,8 +8,6 @@ struct Uniforms {
     viewProjMatrix: mat4x4f,
 };
 
-const LIGHT_POSITION: vec3f = vec3f(0., 1.5, 0.);
-
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
 @group(0) @binding(1) var<storage, read> instances: array<InstanceData>;
 @group(1) @binding(0) var textureHeightMap: texture_2d<f32>;
@@ -35,8 +33,7 @@ fn vertex(
 
     let actual_pos = instance_data.modelMatrix * vec4f(0., 0., 0., 1.);
 
-    let lighting = ballLighting[instance_data.ballIndex];
-    let scale: f32 = clamp(lighting, 0., 1.);
+    let scale = ballLighting[instance_data.ballIndex];
     let scaling: mat4x4f = mat4x4f(
         scale, 0., 0., 0.,
         0., scale, 0., 0.,
