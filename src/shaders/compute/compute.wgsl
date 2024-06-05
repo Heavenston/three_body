@@ -4,6 +4,7 @@ fn lerp(fr: f32, to: f32, t: f32) -> f32 {
     return fr * (1. - t) + to * t;
 }
 
+const LIGHT_POSITION: vec3f = vec3f(0., 1.5, 0.);
 const SHEET_BASE_HEIGHT: f32 = 0.25;
 
 struct Uniforms {
@@ -173,11 +174,52 @@ fn post_pixel(
     post_pixel(global_invocation_id.xy);
 }
 
+fn raySegmentIntersectsSphere(rayOrigin: vec3f, rayTarget: vec3f, sphereCenter: vec3f, sphereRadius: f32) -> bool {
+    let d = rayTarget - rayOrigin;
+    let f = rayOrigin - sphereCenter;
+
+    let a = dot(d, d);
+    let b = 2.0 * dot(f, d);
+    let c = dot(f, f) - sphereRadius * sphereRadius;
+
+    let discriminant = b * b - 4.0 * a * c;
+
+    if discriminant < 0.0 {
+        return false; // No intersection
+    }
+
+    let sqrtDiscriminant = sqrt(discriminant);
+    let t1 = (-b - sqrtDiscriminant) / (2.0 * a);
+    let t2 = (-b + sqrtDiscriminant) / (2.0 * a);
+
+    // Check if the intersection points are within the segment
+    if (t1 >= 0.0 && t1 <= 1.0) || (t2 >= 0.0 && t2 <= 1.0) {
+        return true;
+    }
+
+    return false;
+}
+fn lighting_for(i: u32) {
+    var pos = ballPositions[i];
+
+    pos.y = sampleHeight(pos.xz / vec2f(uniforms.planeSize));
+    
+    let to_light = pos - LIGHT_POSITION;
+
+    for (var iparticle: u32 = 0; iparticle < uniforms.particleCount; iparticle++) {
+        let particle: Particle = particles[iparticle];
+        if (raySegmentIntersectsSphere(pos, LIGHT_POSITION, particle.position, particle.radius)) {
+            ballLighting[i] = 0.;
+            return;
+        }
+    }
+    
+    ballLighting[i] = 2. / pow(length(pos - LIGHT_POSITION), 1.);
+}
+
 // Compute light level for each balls
 @compute @workgroup_size(64,1,1) fn lighting(
     @builtin(global_invocation_id) global_invocation_id : vec3<u32>,
 ) {
-    for (var i: u32 = 0; i < uniforms.ballCount; i++) {
-        ballLighting[i] = (ballPositions[i].x + uniforms.planeSize/2.) / uniforms.planeSize;
-    }
+    lighting_for(global_invocation_id.x);
 }

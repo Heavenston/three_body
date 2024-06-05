@@ -102,8 +102,8 @@ type SheetPipeline = {
 type SheetPipelines = {
   press: SheetPipeline,
   post: SheetPipeline,
-  ballLighting: SheetPipeline,
   displace: SheetPipeline,
+  ballLighting: SheetPipeline,
 };
 
 export class SheetComponent extends Component {
@@ -315,35 +315,6 @@ export class SheetComponent extends Component {
       bindgroup: postBindgroup,
     };
 
-    const ballLightingPipeline = device.createComputePipeline({
-      layout: "auto",
-      label: "sheet lighting compute pipeline",
-      compute: {
-        module: this.computeShaderModule,
-        entryPoint: "lighting",
-      }
-    });
-    const ballLightingBindgroup = device.createBindGroup({
-      layout: ballLightingPipeline.getBindGroupLayout(0),
-      label: "lighting sheet bind group",
-      entries: [
-        // { binding: 0, resource: { buffer: this.mesh.positionsBuffer } },
-        // { binding: 1, resource: { buffer: this.mesh.normalsBuffer } },
-        // { binding: 2, resource: { buffer: this.mesh.uvsBuffer } },
-        { binding: 3, resource: { buffer: this.uniform } },
-        // { binding: 4, resource: this.heightmapPre.createView() },
-        // { binding: 5, resource: this.heightmapPost.createView() },
-        // { binding: 6, resource: { buffer: this.particlesBuffer } },
-        // { binding: 7, resource: this.heightmapSampler },
-        { binding: 8, resource: { buffer: this.ballPositionsBuffer } },
-        { binding: 9, resource: { buffer: this.ballLightingBuffer } },
-      ],
-    });
-    pipelines.ballLighting = {
-      pipeline: ballLightingPipeline,
-      bindgroup: ballLightingBindgroup,
-    };
-
     const displacePipeline = device.createComputePipeline({
       layout: "auto",
       label: "sheet displace compute pipeline",
@@ -369,6 +340,35 @@ export class SheetComponent extends Component {
     pipelines.displace = {
       pipeline: displacePipeline,
       bindgroup: displaceBindgroup,
+    };
+
+    const ballLightingPipeline = device.createComputePipeline({
+      layout: "auto",
+      label: "sheet lighting compute pipeline",
+      compute: {
+        module: this.computeShaderModule,
+        entryPoint: "lighting",
+      }
+    });
+    const ballLightingBindgroup = device.createBindGroup({
+      layout: ballLightingPipeline.getBindGroupLayout(0),
+      label: "lighting sheet bind group",
+      entries: [
+        // { binding: 0, resource: { buffer: this.mesh.positionsBuffer } },
+        // { binding: 1, resource: { buffer: this.mesh.normalsBuffer } },
+        // { binding: 2, resource: { buffer: this.mesh.uvsBuffer } },
+        { binding: 3, resource: { buffer: this.uniform } },
+        // { binding: 4, resource: this.heightmapPre.createView() },
+        { binding: 5, resource: this.heightmapPost.createView() },
+        { binding: 6, resource: { buffer: this.particlesBuffer } },
+        { binding: 7, resource: this.heightmapSampler },
+        { binding: 8, resource: { buffer: this.ballPositionsBuffer } },
+        { binding: 9, resource: { buffer: this.ballLightingBuffer } },
+      ],
+    });
+    pipelines.ballLighting = {
+      pipeline: ballLightingPipeline,
+      bindgroup: ballLightingBindgroup,
     };
 
     this.ballMaterial.customBindGroups = [{
@@ -441,15 +441,15 @@ export class SheetComponent extends Component {
     passEncoder.setBindGroup(0, pipelines.post.bindgroup);
     passEncoder.dispatchWorkgroups(this.heightmapPre.width/16, this.heightmapPre.height/16, 1);
 
-    passEncoder.setPipeline(pipelines.ballLighting.pipeline);
-    passEncoder.setBindGroup(0, pipelines.ballLighting.bindgroup);
-    passEncoder.dispatchWorkgroups(1);
-
     const count = this.mesh.positionsBuffer.size / (4 * 3);
 
     passEncoder.setPipeline(pipelines.displace.pipeline);
     passEncoder.setBindGroup(0, pipelines.displace.bindgroup);
     passEncoder.dispatchWorkgroups((count / 3) / 64, 1, 1);
+
+    passEncoder.setPipeline(pipelines.ballLighting.pipeline);
+    passEncoder.setBindGroup(0, pipelines.ballLighting.bindgroup);
+    passEncoder.dispatchWorkgroups(this.ballList.length / 64);
 
     passEncoder.end();
     device.queue.submit([commandEncoder.finish()]);
