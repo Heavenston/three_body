@@ -422,12 +422,13 @@ const run = async () => {
   {
     console.log("CREATING SPHERE");
     console.time("vertices");
-    const vertices = Mesh.cubeVertices(3);
+    const vertices = Mesh.cubeVertices(2);
     console.timeEnd("vertices");
     console.log("vertex count:", vertices.positions.length / 3);
 
     console.time("normalize");
-    Mesh.normalizeVertices(vertices, 0.03);
+    // Mesh.normalizeVertices(vertices, 0.03);
+    Mesh.normalizeVertices(vertices, 0.05);
     console.timeEnd("normalize");
 
     console.time("computeNormals");

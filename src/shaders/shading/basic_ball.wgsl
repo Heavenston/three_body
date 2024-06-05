@@ -38,7 +38,7 @@ fn vertex(
     let to_light = out.worldPos.xyz - LIGHT_POSITION;
     let lighting = dot(normalize(to_light), out.normal);
 
-    let scale: f32 = clamp(lighting * 2., 0., 1.);
+    let scale: f32 = clamp(lighting, 0., 1.);
     let scaling: mat4x4f = mat4x4f(
         scale, 0., 0., 0.,
         0., scale, 0., 0.,
